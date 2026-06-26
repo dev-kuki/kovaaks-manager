@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>KovaaK's Playlist Manager</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div id="app">
+
+    <!-- sidebar -->
+    <aside id="sidebar">
+      <div class="sidebar-header">
+        <span class="logo-mark">⬡</span>
+        <span class="logo-text">kovaaks<span class="logo-accent">/manager</span></span>
+      </div>
+
+      <nav class="sidebar-nav">
+        <button class="nav-item active" data-view="playlists">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+          playlists
+        </button>
+        <button class="nav-item" data-view="upload">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0018 9h-1.26A8 8 0 103 16.3"/></svg>
+          upload
+        </button>
+        <button class="nav-item" data-view="settings">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93l-1.41 1.41M4.93 4.93l1.41 1.41M12 2v2M12 20v2M20 12h2M2 12h2M19.07 19.07l-1.41-1.41M4.93 19.07l1.41-1.41"/></svg>
+          settings
+        </button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <span id="conn-status" class="status-dot disconnected"></span>
+        <span id="conn-label">not connected</span>
+      </div>
+    </aside>
+
+    <!-- main content -->
+    <main id="main">
+
+      <!-- playlists view -->
+      <section id="view-playlists" class="view active">
+        <div class="view-header">
+          <div>
+            <h1>playlists</h1>
+            <p class="view-sub">your folders and routines</p>
+          </div>
+          <div class="header-actions">
+            <div class="search-wrap">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input type="text" id="search-input" placeholder="search playlists…" />
+            </div>
+            <button class="btn-primary" id="btn-new-folder">+ new folder</button>
+          </div>
+        </div>
+
+        <div id="folders-container">
+          <div class="empty-state" id="empty-playlists">
+            <div class="empty-icon">◫</div>
+            <p>no playlists yet</p>
+            <span>upload a playlist and put it in a folder to get started</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- upload view -->
+      <section id="view-upload" class="view">
+        <div class="view-header">
+          <div>
+            <h1>upload</h1>
+            <p class="view-sub">add a playlist to your library</p>
+          </div>
+        </div>
+
+        <div class="upload-form">
+          <div class="field">
+            <label for="pl-name">playlist name</label>
+            <input type="text" id="pl-name" placeholder="e.g. Voltaic Entry — Clicking" />
+          </div>
+
+          <div class="field">
+            <label for="pl-folder">folder</label>
+            <div class="select-wrap">
+              <select id="pl-folder">
+                <option value="">— no folder —</option>
+              </select>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="pl-game">game tag <span class="label-optional">(optional)</span></label>
+            <input type="text" id="pl-game" placeholder="e.g. CS2, Valorant, Apex" />
+          </div>
+
+          <div class="field">
+            <label for="pl-file">playlist file <span class="label-optional">(.json)</span></label>
+            <div class="file-drop" id="file-drop">
+              <input type="file" id="pl-file" accept=".json" />
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0018 9h-1.26A8 8 0 103 16.3"/></svg>
+              <span id="file-label">drop a .json here or click to browse</span>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="pl-notes">notes <span class="label-optional">(optional)</span></label>
+            <textarea id="pl-notes" rows="3" placeholder="what's this routine for, difficulty, source…"></textarea>
+          </div>
+
+          <div class="form-actions">
+            <button class="btn-primary" id="btn-upload">upload playlist</button>
+          </div>
+
+          <div id="upload-feedback"></div>
+        </div>
+      </section>
+
+      <!-- settings view -->
+      <section id="view-settings" class="view">
+        <div class="view-header">
+          <div>
+            <h1>settings</h1>
+            <p class="view-sub">supabase connection</p>
+          </div>
+        </div>
+
+        <div class="settings-form">
+          <div class="info-block">
+            <p>
+              you need a <strong>Supabase</strong> project to store your playlists.
+              follow the setup guide below, then paste your credentials here.
+            </p>
+          </div>
+
+          <details class="setup-guide">
+            <summary>how to set up Supabase ↓</summary>
+            <div class="guide-body">
+              <ol>
+                <li>go to <a href="https://supabase.com" target="_blank" rel="noopener">supabase.com</a> and create a free account</li>
+                <li>click <strong>New project</strong>, give it a name (e.g. <code>kovaaks</code>), pick a region close to you, set a database password and save it somewhere</li>
+                <li>once the project is ready, go to <strong>Project Settings → API</strong></li>
+                <li>copy the <strong>Project URL</strong> and the <strong>anon / public</strong> key — paste them below</li>
+                <li>now go to <strong>SQL Editor</strong> in the left sidebar and run this to create the two tables:</li>
+              </ol>
+              <pre><code>create table folders (
+  id uuid default gen_random_uuid() primary key,
+  name text not null,
+  created_at timestamptz default now()
+);
+
+create table playlists (
+  id uuid default gen_random_uuid() primary key,
+  name text not null,
+  folder_id uuid references folders(id) on delete set null,
+  game_tag text,
+  notes text,
+  file_data jsonb,
+  created_at timestamptz default now()
+);</code></pre>
+              <li>that's it — paste your URL and key below and hit save</li>
+            </div>
+          </details>
+
+          <div class="field">
+            <label for="sb-url">project URL</label>
+            <input type="text" id="sb-url" placeholder="https://xxxxxxxxxxx.supabase.co" />
+          </div>
+
+          <div class="field">
+            <label for="sb-key">anon key</label>
+            <input type="text" id="sb-key" placeholder="eyJhbGci…" />
+          </div>
+
+          <div class="form-actions">
+            <button class="btn-primary" id="btn-save-settings">save & connect</button>
+          </div>
+
+          <div id="settings-feedback"></div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- folder create modal -->
+  <div id="modal-overlay" class="hidden">
+    <div id="modal">
+      <div class="modal-header">
+        <span id="modal-title">new folder</span>
+        <button id="modal-close">✕</button>
+      </div>
+      <div class="field">
+        <label for="folder-name-input">folder name</label>
+        <input type="text" id="folder-name-input" placeholder="e.g. CS2 Routines" />
+      </div>
+      <div class="modal-actions">
+        <button class="btn-ghost" id="modal-cancel">cancel</button>
+        <button class="btn-primary" id="modal-confirm">create</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="js/db.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
