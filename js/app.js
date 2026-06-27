@@ -45,15 +45,12 @@
   async function connect(url, key, silent = false) {
     UI.setStatus("connecting")
     UI.setFeedback("settings-feedback", "")
-
     try {
       DB.init(url, key)
       const ok = await DB.ping()
       if (!ok) throw new Error("could not reach the database — check your URL and key")
-
       localStorage.setItem("sb-url", url)
       localStorage.setItem("sb-key", key)
-
       UI.setStatus("connected")
       if (!silent) UI.setFeedback("settings-feedback", "connected ✓")
       await refresh()
@@ -69,7 +66,7 @@
     if (!DB.ready()) return
     try {
       ;[folders, playlists] = await Promise.all([DB.getFolders(), DB.getAllPlaylists()])
-      UI.populateFolderSelect(folders)
+      UI.populateFolderSelect(folders, "pl-folder")
       UI.renderFolders(folders, playlists, searchQuery)
     } catch (err) {
       UI.toast("refresh failed: " + err.message)
@@ -86,7 +83,7 @@
   // ── new folder ──
 
   document.getElementById("btn-new-folder").addEventListener("click", () => {
-    UI.openModal(async name => {
+    UI.openFolderModal(async name => {
       if (!DB.ready()) { UI.toast("not connected to supabase yet", 3000); return }
       try {
         await DB.createFolder(name)
@@ -98,16 +95,15 @@
     })
   })
 
-  // ── folder delete (delegated) ──
+  // ── playlist actions (delegated) ──
 
   document.getElementById("folders-container").addEventListener("click", async e => {
+
     // delete folder
-    const delFolder = e.target.closest("[data-folder-id]")
-    if (delFolder && e.target.closest(".folder-delete")) {
-      const id = delFolder.dataset.folderId
+    if (e.target.closest(".folder-delete")) {
+      const id = e.target.closest("[data-folder-id]").dataset.folderId
       const folder = folders.find(f => f.id === id)
-      if (!folder) return
-      if (!confirm(`delete folder "${folder.name}"?\nplaylists inside will become unsorted.`)) return
+      if (!folder || !confirm(`delete folder "${folder.name}"?\nplaylists inside will become unsorted.`)) return
       try {
         await DB.deleteFolder(id)
         await refresh()
@@ -118,20 +114,38 @@
       return
     }
 
-    // copy playlist name
+    // copy name
     const copyBtn = e.target.closest(".btn-copy")
     if (copyBtn) {
-      const name = copyBtn.dataset.name
       try {
-        await navigator.clipboard.writeText(name)
-        UI.toast("copied: " + name)
+        await navigator.clipboard.writeText(copyBtn.dataset.name)
+        UI.toast("copied: " + copyBtn.dataset.name)
       } catch {
         UI.toast("clipboard not available")
       }
       return
     }
 
-    // download playlist json
+    // edit playlist
+    const editBtn = e.target.closest(".btn-edit")
+    if (editBtn) {
+      const id = editBtn.dataset.playlistId
+      const playlist = playlists.find(p => p.id === id)
+      if (!playlist) return
+
+      UI.openEditModal(playlist, folders, async updates => {
+        try {
+          await DB.updatePlaylist(id, updates)
+          await refresh()
+          UI.toast(`"${updates.name}" updated`)
+        } catch (err) {
+          UI.toast("error: " + err.message)
+        }
+      })
+      return
+    }
+
+    // download json
     const dlBtn = e.target.closest(".btn-download")
     if (dlBtn) {
       const id = dlBtn.dataset.playlistId
@@ -152,12 +166,11 @@
     }
 
     // delete playlist
-    const delPlaylist = e.target.closest("[data-delete-playlist]")
-    if (delPlaylist) {
-      const id = delPlaylist.dataset.deletePlaylist
+    const delBtn = e.target.closest("[data-delete-playlist]")
+    if (delBtn) {
+      const id = delBtn.dataset.deletePlaylist
       const pl = playlists.find(p => p.id === id)
-      if (!pl) return
-      if (!confirm(`delete "${pl.name}"?`)) return
+      if (!pl || !confirm(`delete "${pl.name}"?`)) return
       try {
         await DB.deletePlaylist(id)
         await refresh()
@@ -175,8 +188,7 @@
   const fileDrop = document.getElementById("file-drop")
 
   fileInput.addEventListener("change", () => {
-    const f = fileInput.files[0]
-    fileLabel.textContent = f ? f.name : "drop a .json here or click to browse"
+    fileLabel.textContent = fileInput.files[0] ? fileInput.files[0].name : "drop a .json here or click to browse"
   })
 
   fileDrop.addEventListener("dragover", e => { e.preventDefault(); fileDrop.classList.add("dragover") })
@@ -186,7 +198,6 @@
     fileDrop.classList.remove("dragover")
     const f = e.dataTransfer.files[0]
     if (f) {
-      // assign to the real input so validation works
       const dt = new DataTransfer()
       dt.items.add(f)
       fileInput.files = dt.files
@@ -204,6 +215,7 @@
     const folderId = document.getElementById("pl-folder").value
     const gameTag = document.getElementById("pl-game").value.trim()
     const notes = document.getElementById("pl-notes").value.trim()
+    const shareCode = document.getElementById("pl-share").value.trim()
     const file = fileInput.files[0]
 
     if (!name) { UI.setFeedback("upload-feedback", "playlist name is required", true); return }
@@ -215,19 +227,16 @@
     try {
       const text = await file.text()
       let parsed
-      try {
-        parsed = JSON.parse(text)
-      } catch {
-        throw new Error("that file isn't valid JSON")
-      }
+      try { parsed = JSON.parse(text) } catch { throw new Error("that file isn't valid JSON") }
 
-      await DB.uploadPlaylist({ name, folderId, gameTag, notes, fileData: parsed })
+      await DB.uploadPlaylist({ name, folderId, gameTag, notes, shareCode, fileData: parsed })
 
       UI.setFeedback("upload-feedback", `"${name}" uploaded ✓`)
       document.getElementById("pl-name").value = ""
       document.getElementById("pl-folder").value = ""
       document.getElementById("pl-game").value = ""
       document.getElementById("pl-notes").value = ""
+      document.getElementById("pl-share").value = ""
       fileInput.value = ""
       fileLabel.textContent = "drop a .json here or click to browse"
 
