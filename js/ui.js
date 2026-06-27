@@ -38,16 +38,17 @@ const UI = (() => {
     el.className = isError ? "feedback-err" : "feedback-ok"
   }
 
-  // ── folder select in upload form ──
+  // ── folder select ──
 
-  function populateFolderSelect(folders) {
-    const sel = document.getElementById("pl-folder")
-    // keep the first "no folder" option
+  function populateFolderSelect(folders, selectId = "pl-folder", selectedId = "") {
+    const sel = document.getElementById(selectId)
+    if (!sel) return
     sel.innerHTML = '<option value="">— no folder —</option>'
     folders.forEach(f => {
       const opt = document.createElement("option")
       opt.value = f.id
       opt.textContent = f.name
+      if (f.id === selectedId) opt.selected = true
       sel.appendChild(opt)
     })
   }
@@ -58,14 +59,12 @@ const UI = (() => {
     const container = document.getElementById("folders-container")
     const emptyState = document.getElementById("empty-playlists")
 
-    // group playlists by folder
     const byFolder = {}
     const unassigned = []
 
     playlists.forEach(p => {
       const matches = !query || p.name.toLowerCase().includes(query) || (p.game_tag || "").toLowerCase().includes(query)
       if (!matches) return
-
       if (p.folder_id) {
         if (!byFolder[p.folder_id]) byFolder[p.folder_id] = []
         byFolder[p.folder_id].push(p)
@@ -89,20 +88,14 @@ const UI = (() => {
     const list = document.createElement("div")
     list.className = "folders-list"
 
-    // render each folder
     folders.forEach(f => {
       const items = byFolder[f.id] || []
-      if (query && items.length === 0) return // hide empty folders during search
-
-      const folderEl = makeFolderEl(f, items)
-      list.appendChild(folderEl)
+      if (query && items.length === 0) return
+      list.appendChild(makeFolderEl(f, items))
     })
 
-    // unassigned playlists at the bottom
     if (unassigned.length > 0) {
-      const ghost = { id: "none", name: "unsorted" }
-      const folderEl = makeFolderEl(ghost, unassigned, true)
-      list.appendChild(folderEl)
+      list.appendChild(makeFolderEl({ id: "none", name: "unsorted" }, unassigned, true))
     }
 
     if (list.children.length === 0) {
@@ -120,7 +113,6 @@ const UI = (() => {
     el.className = "folder-item"
     el.dataset.folderId = folder.id
 
-    // restore open state from session
     const openKey = "folder-open-" + folder.id
     if (sessionStorage.getItem(openKey) === "1") el.classList.add("open")
 
@@ -140,14 +132,12 @@ const UI = (() => {
     const header = el.querySelector(".folder-header")
     const body = el.querySelector(".folder-body")
 
-    // toggle
     header.addEventListener("click", e => {
       if (e.target.closest(".folder-delete")) return
       el.classList.toggle("open")
       sessionStorage.setItem(openKey, el.classList.contains("open") ? "1" : "0")
     })
 
-    // populate body
     if (playlists.length === 0) {
       body.innerHTML = `<div class="empty-state" style="padding:20px"><span>no playlists in this folder</span></div>`
     } else {
@@ -162,14 +152,23 @@ const UI = (() => {
     row.className = "playlist-row"
     row.dataset.playlistId = playlist.id
 
+    const hasShareCode = !!playlist.share_code
+
     row.innerHTML = `
       <span class="playlist-dot"></span>
       <span class="playlist-name">${escHtml(playlist.name)}</span>
       ${playlist.game_tag ? `<span class="playlist-tag">${escHtml(playlist.game_tag)}</span>` : ""}
       <div class="playlist-actions">
-        <button class="btn-copy" data-playlist-id="${playlist.id}" data-name="${escHtml(playlist.name)}" title="copy name">copy name</button>
+        ${hasShareCode ? `<a class="btn-launch" href="steam://run/824270/?action=jump-to-playlist;sharecode=${escHtml(playlist.share_code)}" title="open in KovaaK's">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          open
+        </a>` : ""}
+        <button class="btn-copy" data-name="${escHtml(playlist.name)}" title="copy name">copy name</button>
+        <button class="btn-edit" data-playlist-id="${playlist.id}" title="edit">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        </button>
         <button class="btn-download" data-playlist-id="${playlist.id}" title="download .json">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
         </button>
         <button class="btn-icon" data-delete-playlist="${playlist.id}" title="delete">
           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
@@ -180,11 +179,12 @@ const UI = (() => {
     return row
   }
 
-  // ── modal ──
+  // ── folder create modal ──
 
-  function openModal(onConfirm) {
+  function openFolderModal(onConfirm) {
     const overlay = document.getElementById("modal-overlay")
     const input = document.getElementById("folder-name-input")
+    document.getElementById("modal-title").textContent = "new folder"
     overlay.classList.remove("hidden")
     input.value = ""
     input.focus()
@@ -198,6 +198,8 @@ const UI = (() => {
       confirm.onclick = null
       cancel.onclick = null
       close.onclick = null
+      input.onkeydown = null
+      overlay.onclick = null
     }
 
     confirm.onclick = () => {
@@ -207,12 +209,76 @@ const UI = (() => {
       onConfirm(name)
     }
 
-    input.onkeydown = e => {
-      if (e.key === "Enter") confirm.onclick()
-    }
-
+    input.onkeydown = e => { if (e.key === "Enter") confirm.onclick() }
     cancel.onclick = cleanup
     close.onclick = cleanup
+    overlay.onclick = e => { if (e.target === overlay) cleanup() }
+  }
+
+  // ── edit playlist modal ──
+
+  function openEditModal(playlist, folders, onSave) {
+    const overlay = document.getElementById("edit-modal-overlay")
+    overlay.classList.remove("hidden")
+
+    // populate fields
+    document.getElementById("edit-pl-name").value = playlist.name || ""
+    document.getElementById("edit-pl-game").value = playlist.game_tag || ""
+    document.getElementById("edit-pl-notes").value = playlist.notes || ""
+    document.getElementById("edit-pl-share").value = playlist.share_code || ""
+    document.getElementById("edit-file-label").textContent = "leave empty to keep current file"
+    document.getElementById("edit-pl-file").value = ""
+
+    populateFolderSelect(folders, "edit-pl-folder", playlist.folder_id || "")
+
+    const saveBtn = document.getElementById("edit-modal-save")
+    const cancelBtn = document.getElementById("edit-modal-cancel")
+    const closeBtn = document.getElementById("edit-modal-close")
+    const fileInput = document.getElementById("edit-pl-file")
+    const fileLabel = document.getElementById("edit-file-label")
+
+    fileInput.onchange = () => {
+      fileLabel.textContent = fileInput.files[0] ? fileInput.files[0].name : "leave empty to keep current file"
+    }
+
+    function cleanup() {
+      overlay.classList.add("hidden")
+      saveBtn.onclick = null
+      cancelBtn.onclick = null
+      closeBtn.onclick = null
+      overlay.onclick = null
+      fileInput.onchange = null
+    }
+
+    saveBtn.onclick = async () => {
+      const name = document.getElementById("edit-pl-name").value.trim()
+      if (!name) { document.getElementById("edit-pl-name").focus(); return }
+
+      let fileData = undefined
+      const file = fileInput.files[0]
+      if (file) {
+        try {
+          const text = await file.text()
+          fileData = JSON.parse(text)
+        } catch {
+          UI.toast("that file isn't valid JSON")
+          return
+        }
+      }
+
+      cleanup()
+      onSave({
+        name,
+        folderId: document.getElementById("edit-pl-folder").value,
+        gameTag: document.getElementById("edit-pl-game").value.trim(),
+        notes: document.getElementById("edit-pl-notes").value.trim(),
+        shareCode: document.getElementById("edit-pl-share").value.trim(),
+        fileData,
+      })
+    }
+
+    cancelBtn.onclick = cleanup
+    closeBtn.onclick = cleanup
     overlay.onclick = e => { if (e.target === overlay) cleanup() }
   }
 
@@ -232,6 +298,7 @@ const UI = (() => {
     setFeedback,
     populateFolderSelect,
     renderFolders,
-    openModal,
+    openFolderModal,
+    openEditModal,
   }
 })()
