@@ -48,6 +48,7 @@
       UI.populateFolderSelect(folders, "pl-folder")
       UI.renderFolders(folders, playlists, plQuery)
       UI.renderScenarios(scenarios, scQuery)
+      Routine.populateQuickAdd(playlists, scenarios)
     } catch (err) { UI.toast("refresh failed: " + err.message) }
   }
 
