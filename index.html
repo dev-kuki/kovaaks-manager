@@ -3,154 +3,209 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>KovaaK's Playlist Manager</title>
+  <title>KovaaK's Manager</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
   <div id="app">
 
-    <!-- sidebar -->
     <aside id="sidebar">
-      <div class="sidebar-header">
-        <span class="logo-mark">⬡</span>
-        <span class="logo-text">kovaaks<span class="logo-accent">/manager</span></span>
+      <div class="sidebar-top">
+        <div class="logo">
+          <div class="logo-icon">K</div>
+          <div class="logo-text">
+            <span class="logo-main">KovaaK's</span>
+            <span class="logo-sub">manager</span>
+          </div>
+        </div>
+
+        <nav class="nav">
+          <button class="nav-btn active" data-view="playlists">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+            <span>Playlists</span>
+          </button>
+          <button class="nav-btn" data-view="scenarios">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><polygon points="10 8 16 12 10 16 10 8"/></svg>
+            <span>Scenarios</span>
+          </button>
+          <button class="nav-btn" data-view="upload">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            <span>Upload</span>
+          </button>
+          <button class="nav-btn" data-view="transfer">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            <span>Export / Import</span>
+          </button>
+          <button class="nav-btn" data-view="settings">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93l-1.41 1.41M4.93 4.93l1.41 1.41M12 2v2M12 20v2M20 12h2M2 12h2M19.07 19.07l-1.41-1.41M4.93 19.07l1.41-1.41"/></svg>
+            <span>Settings</span>
+          </button>
+        </nav>
       </div>
 
-      <nav class="sidebar-nav">
-        <button class="nav-item active" data-view="playlists">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
-          playlists
-        </button>
-        <button class="nav-item" data-view="upload">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0018 9h-1.26A8 8 0 103 16.3"/></svg>
-          upload
-        </button>
-        <button class="nav-item" data-view="settings">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93l-1.41 1.41M4.93 4.93l1.41 1.41M12 2v2M12 20v2M20 12h2M2 12h2M19.07 19.07l-1.41-1.41M4.93 19.07l1.41-1.41"/></svg>
-          settings
-        </button>
-      </nav>
-
-      <div class="sidebar-footer">
-        <span id="conn-status" class="status-dot disconnected"></span>
-        <span id="conn-label">not connected</span>
+      <div class="sidebar-bottom">
+        <div class="conn-pill" id="conn-pill">
+          <span class="conn-dot" id="conn-dot"></span>
+          <span id="conn-label">not connected</span>
+        </div>
       </div>
     </aside>
 
-    <!-- main content -->
     <main id="main">
 
-      <!-- playlists view -->
+      <!-- playlists -->
       <section id="view-playlists" class="view active">
-        <div class="view-header">
-          <div>
-            <h1>playlists</h1>
-            <p class="view-sub">your folders and routines</p>
+        <div class="topbar">
+          <div class="topbar-left">
+            <h1>Playlists</h1>
+            <span class="count-badge" id="playlist-count">0</span>
           </div>
-          <div class="header-actions">
-            <div class="search-wrap">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-              <input type="text" id="search-input" placeholder="search playlists…" />
+          <div class="topbar-right">
+            <div class="search-box">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input type="text" id="search-input" placeholder="search…" />
             </div>
-            <button class="btn-primary" id="btn-new-folder">+ new folder</button>
+            <button class="btn-primary" id="btn-new-folder">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              New Folder
+            </button>
           </div>
         </div>
-
         <div id="folders-container">
           <div class="empty-state" id="empty-playlists">
-            <div class="empty-icon">◫</div>
-            <p>no playlists yet</p>
-            <span>upload a playlist and put it in a folder to get started</span>
+            <div class="empty-glyph">⬡</div>
+            <p>No playlists yet</p>
+            <span>Upload a playlist and assign it to a folder</span>
           </div>
         </div>
       </section>
 
-      <!-- upload view -->
-      <section id="view-upload" class="view">
-        <div class="view-header">
-          <div>
-            <h1>upload</h1>
-            <p class="view-sub">add a playlist to your library</p>
+      <!-- scenarios -->
+      <section id="view-scenarios" class="view">
+        <div class="topbar">
+          <div class="topbar-left">
+            <h1>Scenarios</h1>
+            <span class="count-badge" id="scenario-count">0</span>
+          </div>
+          <div class="topbar-right">
+            <div class="search-box">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input type="text" id="scenario-search" placeholder="search…" />
+            </div>
+            <button class="btn-primary" id="btn-add-scenario">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Add Scenarios
+            </button>
           </div>
         </div>
+        <div id="scenarios-container">
+          <div class="empty-state" id="empty-scenarios">
+            <div class="empty-glyph">◎</div>
+            <p>No scenarios yet</p>
+            <span>Add scenarios with their share codes to launch them directly</span>
+          </div>
+        </div>
+      </section>
 
-        <div class="upload-form">
+      <!-- upload -->
+      <section id="view-upload" class="view">
+        <div class="topbar">
+          <div class="topbar-left"><h1>Upload Playlist</h1></div>
+        </div>
+        <div class="form-card">
           <div class="field">
-            <label for="pl-name">playlist name</label>
+            <label for="pl-name">Name</label>
             <input type="text" id="pl-name" placeholder="e.g. Voltaic Entry — Clicking" />
           </div>
-
-          <div class="field">
-            <label for="pl-folder">folder</label>
-            <div class="select-wrap">
-              <select id="pl-folder">
-                <option value="">— no folder —</option>
-              </select>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+          <div class="field-row">
+            <div class="field">
+              <label for="pl-folder">Folder</label>
+              <div class="select-wrap">
+                <select id="pl-folder"><option value="">— no folder —</option></select>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+              </div>
+            </div>
+            <div class="field">
+              <label for="pl-game">Game tag <span class="optional">optional</span></label>
+              <input type="text" id="pl-game" placeholder="CS2, Valorant…" />
             </div>
           </div>
-
           <div class="field">
-            <label for="pl-game">game tag <span class="label-optional">(optional)</span></label>
-            <input type="text" id="pl-game" placeholder="e.g. CS2, Valorant, Apex" />
+            <label for="pl-share">Share code <span class="optional">for open in KovaaK's</span></label>
+            <input type="text" id="pl-share" placeholder="KovaaKsXxxxxXxxxXxxx" class="mono" />
           </div>
-
           <div class="field">
-            <label for="pl-file">playlist file <span class="label-optional">(.json)</span></label>
+            <label>Playlist file <span class="optional">.json</span></label>
             <div class="file-drop" id="file-drop">
               <input type="file" id="pl-file" accept=".json" />
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0018 9h-1.26A8 8 0 103 16.3"/></svg>
-              <span id="file-label">drop a .json here or click to browse</span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0018 9h-1.26A8 8 0 103 16.3"/></svg>
+              <span id="file-label">Drop .json or click to browse</span>
             </div>
           </div>
-
           <div class="field">
-            <label for="pl-share">share code <span class="label-optional">(optional — for open in KovaaK's)</span></label>
-            <input type="text" id="pl-share" placeholder="e.g. KovaaKsXxxxxXxxxXxxx" />
+            <label for="pl-notes">Notes <span class="optional">optional</span></label>
+            <textarea id="pl-notes" rows="3" placeholder="difficulty, source, what it trains…"></textarea>
           </div>
-
-          <div class="field">
-            <label for="pl-notes">notes <span class="label-optional">(optional)</span></label>
-            <textarea id="pl-notes" rows="3" placeholder="what's this routine for, difficulty, source…"></textarea>
+          <div class="form-footer">
+            <button class="btn-primary large" id="btn-upload">Upload Playlist</button>
+            <span id="upload-feedback"></span>
           </div>
-
-          <div class="form-actions">
-            <button class="btn-primary" id="btn-upload">upload playlist</button>
-          </div>
-
-          <div id="upload-feedback"></div>
         </div>
       </section>
 
-      <!-- settings view -->
-      <section id="view-settings" class="view">
-        <div class="view-header">
-          <div>
-            <h1>settings</h1>
-            <p class="view-sub">supabase connection</p>
+      <!-- export / import -->
+      <section id="view-transfer" class="view">
+        <div class="topbar">
+          <div class="topbar-left"><h1>Export / Import</h1></div>
+        </div>
+        <div class="transfer-grid">
+          <div class="transfer-card">
+            <div class="transfer-icon export-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            </div>
+            <h2>Export</h2>
+            <p>Download all your playlists and folder structure as a <code>.zip</code>. Includes the JSON files and a manifest so everything can be restored exactly.</p>
+            <button class="btn-primary large" id="btn-export">Export library</button>
+            <span id="export-feedback"></span>
+          </div>
+          <div class="transfer-card">
+            <div class="transfer-icon import-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            </div>
+            <h2>Import</h2>
+            <p>Drop a previously exported <code>.zip</code> to restore your library. Folders and playlists will be recreated in Supabase.</p>
+            <div class="file-drop" id="import-drop">
+              <input type="file" id="import-file" accept=".zip" />
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0018 9h-1.26A8 8 0 103 16.3"/></svg>
+              <span id="import-file-label">Drop .zip or click to browse</span>
+            </div>
+            <button class="btn-primary large" id="btn-import" disabled>Import library</button>
+            <span id="import-feedback"></span>
           </div>
         </div>
+      </section>
 
-        <div class="settings-form">
-          <div class="info-block">
-            <p>
-              you need a <strong>Supabase</strong> project to store your playlists.
-              follow the setup guide below, then paste your credentials here.
-            </p>
+      <!-- settings -->
+      <section id="view-settings" class="view">
+        <div class="topbar">
+          <div class="topbar-left"><h1>Settings</h1></div>
+        </div>
+        <div class="form-card">
+          <div class="info-banner">
+            Connect your Supabase project. Credentials are stored in your browser only — never sent anywhere else.
           </div>
-
-          <details class="setup-guide">
-            <summary>how to set up Supabase ↓</summary>
+          <details class="guide">
+            <summary>Supabase setup guide</summary>
             <div class="guide-body">
               <ol>
-                <li>go to <a href="https://supabase.com" target="_blank" rel="noopener">supabase.com</a> and create a free account</li>
-                <li>click <strong>New project</strong>, give it a name (e.g. <code>kovaaks</code>), pick a region close to you, set a database password and save it somewhere</li>
-                <li>once the project is ready, go to <strong>Project Settings → API</strong></li>
-                <li>copy the <strong>Project URL</strong> and the <strong>anon / public</strong> key — paste them below</li>
-                <li>now go to <strong>SQL Editor</strong> in the left sidebar and run this to create the two tables:</li>
+                <li>Go to <a href="https://supabase.com" target="_blank">supabase.com</a> and create a free account</li>
+                <li>Create a new project, pick a name and region</li>
+                <li>Go to <strong>Project Settings → API</strong> and copy your Project URL and anon key</li>
+                <li>Open <strong>SQL Editor</strong> and run the table setup queries</li>
+                <li>Paste your URL and key below and hit Save</li>
               </ol>
               <pre><code>create table folders (
   id uuid default gen_random_uuid() primary key,
@@ -165,96 +220,155 @@ create table playlists (
   game_tag text,
   notes text,
   file_data jsonb,
+  share_code text,
+  created_at timestamptz default now()
+);
+
+create table scenarios (
+  id uuid default gen_random_uuid() primary key,
+  name text not null,
+  share_code text,
+  game_tag text,
+  notes text,
   created_at timestamptz default now()
 );</code></pre>
-              <li>that's it — paste your URL and key below and hit save</li>
             </div>
           </details>
-
           <div class="field">
-            <label for="sb-url">project URL</label>
-            <input type="text" id="sb-url" placeholder="https://xxxxxxxxxxx.supabase.co" />
+            <label for="sb-url">Project URL</label>
+            <input type="text" id="sb-url" placeholder="https://xxxxxxxxxx.supabase.co" class="mono" />
           </div>
-
           <div class="field">
-            <label for="sb-key">anon key</label>
-            <input type="text" id="sb-key" placeholder="eyJhbGci…" />
+            <label for="sb-key">Anon key</label>
+            <input type="text" id="sb-key" placeholder="eyJhbGci…" class="mono" />
           </div>
-
-          <div class="form-actions">
-            <button class="btn-primary" id="btn-save-settings">save & connect</button>
+          <div class="form-footer">
+            <button class="btn-primary large" id="btn-save-settings">Save & Connect</button>
+            <span id="settings-feedback"></span>
           </div>
-
-          <div id="settings-feedback"></div>
         </div>
       </section>
 
     </main>
   </div>
 
-  <!-- folder create modal -->
-  <div id="modal-overlay" class="hidden">
-    <div id="modal">
-      <div class="modal-header">
-        <span id="modal-title">new folder</span>
-        <button id="modal-close">✕</button>
+  <!-- folder modal -->
+  <div id="modal-overlay" class="modal-backdrop hidden">
+    <div class="modal">
+      <div class="modal-hdr">
+        <span id="modal-title">New folder</span>
+        <button class="modal-x" id="modal-close">✕</button>
       </div>
       <div class="field">
-        <label for="folder-name-input">folder name</label>
+        <label for="folder-name-input">Folder name</label>
         <input type="text" id="folder-name-input" placeholder="e.g. CS2 Routines" />
       </div>
       <div class="modal-actions">
-        <button class="btn-ghost" id="modal-cancel">cancel</button>
-        <button class="btn-primary" id="modal-confirm">create</button>
+        <button class="btn-ghost" id="modal-cancel">Cancel</button>
+        <button class="btn-primary" id="modal-confirm">Create</button>
       </div>
     </div>
   </div>
 
   <!-- edit playlist modal -->
-  <div id="edit-modal-overlay" class="hidden">
-    <div id="edit-modal">
-      <div class="modal-header">
-        <span>edit playlist</span>
-        <button id="edit-modal-close">✕</button>
+  <div id="edit-modal-overlay" class="modal-backdrop hidden">
+    <div class="modal modal-wide">
+      <div class="modal-hdr">
+        <span>Edit playlist</span>
+        <button class="modal-x" id="edit-modal-close">✕</button>
       </div>
       <div class="field">
-        <label for="edit-pl-name">name</label>
-        <input type="text" id="edit-pl-name" placeholder="playlist name" />
+        <label for="edit-pl-name">Name</label>
+        <input type="text" id="edit-pl-name" />
       </div>
-      <div class="field">
-        <label for="edit-pl-folder">folder</label>
-        <div class="select-wrap">
-          <select id="edit-pl-folder"></select>
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+      <div class="field-row">
+        <div class="field">
+          <label for="edit-pl-folder">Folder</label>
+          <div class="select-wrap">
+            <select id="edit-pl-folder"></select>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+        </div>
+        <div class="field">
+          <label for="edit-pl-game">Game tag</label>
+          <input type="text" id="edit-pl-game" placeholder="CS2, Valorant…" />
         </div>
       </div>
       <div class="field">
-        <label for="edit-pl-game">game tag <span class="label-optional">(optional)</span></label>
-        <input type="text" id="edit-pl-game" placeholder="e.g. CS2, Valorant" />
+        <label for="edit-pl-share">Share code</label>
+        <input type="text" id="edit-pl-share" placeholder="KovaaKsXxxxxXxxxXxxx" class="mono" />
       </div>
       <div class="field">
-        <label for="edit-pl-share">share code <span class="label-optional">(optional)</span></label>
-        <input type="text" id="edit-pl-share" placeholder="KovaaKsXxxxxXxxxXxxx" />
-      </div>
-      <div class="field">
-        <label for="edit-pl-notes">notes <span class="label-optional">(optional)</span></label>
+        <label for="edit-pl-notes">Notes</label>
         <textarea id="edit-pl-notes" rows="3"></textarea>
       </div>
       <div class="field">
-        <label for="edit-pl-file">replace file <span class="label-optional">(.json — leave empty to keep current)</span></label>
-        <div class="file-drop" style="padding:16px">
+        <label>Replace file <span class="optional">leave empty to keep current</span></label>
+        <div class="file-drop file-drop-sm">
           <input type="file" id="edit-pl-file" accept=".json" />
-          <span id="edit-file-label">leave empty to keep current file</span>
+          <span id="edit-file-label">Leave empty to keep current file</span>
         </div>
       </div>
       <div class="modal-actions">
-        <button class="btn-ghost" id="edit-modal-cancel">cancel</button>
-        <button class="btn-primary" id="edit-modal-save">save changes</button>
+        <button class="btn-ghost" id="edit-modal-cancel">Cancel</button>
+        <button class="btn-primary" id="edit-modal-save">Save changes</button>
       </div>
     </div>
   </div>
 
+  <!-- add scenarios modal -->
+  <div id="scenario-modal-overlay" class="modal-backdrop hidden">
+    <div class="modal modal-wide">
+      <div class="modal-hdr">
+        <span>Add Scenarios</span>
+        <button class="modal-x" id="scenario-modal-close">✕</button>
+      </div>
+      <p class="modal-hint">Paste one scenario per line in the format: <code>Name | ShareCode | GameTag</code><br/>Game tag is optional. Share code is optional but needed to launch.</p>
+      <div class="field">
+        <label for="scenario-bulk-input">Scenarios</label>
+        <textarea id="scenario-bulk-input" rows="10" placeholder="Tile Frenzy | KovaaKsABCDEFGH | CS2&#10;Smoothbot | KovaaKsXYZ123&#10;Close Fast Strafes"></textarea>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-ghost" id="scenario-modal-cancel">Cancel</button>
+        <button class="btn-primary" id="scenario-modal-confirm">Add all</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- edit scenario modal -->
+  <div id="edit-scenario-modal-overlay" class="modal-backdrop hidden">
+    <div class="modal">
+      <div class="modal-hdr">
+        <span>Edit scenario</span>
+        <button class="modal-x" id="edit-scenario-modal-close">✕</button>
+      </div>
+      <div class="field">
+        <label for="edit-sc-name">Name</label>
+        <input type="text" id="edit-sc-name" />
+      </div>
+      <div class="field">
+        <label for="edit-sc-share">Share code</label>
+        <input type="text" id="edit-sc-share" class="mono" placeholder="KovaaKsXxxxxXxxxXxxx" />
+      </div>
+      <div class="field">
+        <label for="edit-sc-game">Game tag</label>
+        <input type="text" id="edit-sc-game" placeholder="CS2, Valorant…" />
+      </div>
+      <div class="field">
+        <label for="edit-sc-notes">Notes</label>
+        <textarea id="edit-sc-notes" rows="3"></textarea>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-ghost" id="edit-scenario-modal-cancel">Cancel</button>
+        <button class="btn-primary" id="edit-scenario-modal-save">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast"></div>
+
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
   <script src="js/db.js"></script>
   <script src="js/ui.js"></script>
   <script src="js/app.js"></script>
