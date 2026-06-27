@@ -108,6 +108,11 @@
           </div>
 
           <div class="field">
+            <label for="pl-share">share code <span class="label-optional">(optional — for open in KovaaK's)</span></label>
+            <input type="text" id="pl-share" placeholder="e.g. KovaaKsXxxxxXxxxXxxx" />
+          </div>
+
+          <div class="field">
             <label for="pl-notes">notes <span class="label-optional">(optional)</span></label>
             <textarea id="pl-notes" rows="3" placeholder="what's this routine for, difficulty, source…"></textarea>
           </div>
@@ -201,6 +206,50 @@ create table playlists (
       <div class="modal-actions">
         <button class="btn-ghost" id="modal-cancel">cancel</button>
         <button class="btn-primary" id="modal-confirm">create</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- edit playlist modal -->
+  <div id="edit-modal-overlay" class="hidden">
+    <div id="edit-modal">
+      <div class="modal-header">
+        <span>edit playlist</span>
+        <button id="edit-modal-close">✕</button>
+      </div>
+      <div class="field">
+        <label for="edit-pl-name">name</label>
+        <input type="text" id="edit-pl-name" placeholder="playlist name" />
+      </div>
+      <div class="field">
+        <label for="edit-pl-folder">folder</label>
+        <div class="select-wrap">
+          <select id="edit-pl-folder"></select>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+      </div>
+      <div class="field">
+        <label for="edit-pl-game">game tag <span class="label-optional">(optional)</span></label>
+        <input type="text" id="edit-pl-game" placeholder="e.g. CS2, Valorant" />
+      </div>
+      <div class="field">
+        <label for="edit-pl-share">share code <span class="label-optional">(optional)</span></label>
+        <input type="text" id="edit-pl-share" placeholder="KovaaKsXxxxxXxxxXxxx" />
+      </div>
+      <div class="field">
+        <label for="edit-pl-notes">notes <span class="label-optional">(optional)</span></label>
+        <textarea id="edit-pl-notes" rows="3"></textarea>
+      </div>
+      <div class="field">
+        <label for="edit-pl-file">replace file <span class="label-optional">(.json — leave empty to keep current)</span></label>
+        <div class="file-drop" style="padding:16px">
+          <input type="file" id="edit-pl-file" accept=".json" />
+          <span id="edit-file-label">leave empty to keep current file</span>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-ghost" id="edit-modal-cancel">cancel</button>
+        <button class="btn-primary" id="edit-modal-save">save changes</button>
       </div>
     </div>
   </div>
