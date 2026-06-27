@@ -39,6 +39,10 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
             <span>Export / Import</span>
           </button>
+          <button class="nav-btn" data-view="routine">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 15"/></svg>
+            <span>Routine</span>
+          </button>
           <button class="nav-btn" data-view="settings">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93l-1.41 1.41M4.93 4.93l1.41 1.41M12 2v2M12 20v2M20 12h2M2 12h2M19.07 19.07l-1.41-1.41M4.93 19.07l1.41-1.41"/></svg>
             <span>Settings</span>
@@ -152,6 +156,71 @@
           <div class="form-footer">
             <button class="btn-primary large" id="btn-upload">Upload Playlist</button>
             <span id="upload-feedback"></span>
+          </div>
+        </div>
+      </section>
+
+      <!-- routine -->
+      <section id="view-routine" class="view">
+        <div class="topbar">
+          <div class="topbar-left">
+            <h1>Routine</h1>
+          </div>
+          <div class="topbar-right">
+            <button class="btn-ghost" id="btn-save-routine">Save routine</button>
+            <button class="btn-ghost" id="btn-load-routine">Load routine</button>
+            <button class="btn-primary" id="btn-add-block">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Add block
+            </button>
+          </div>
+        </div>
+
+        <div class="routine-layout">
+          <div class="routine-queue-wrap">
+            <div class="routine-queue-header">
+              <span class="routine-section-label">Queue</span>
+              <button class="btn-ghost btn-sm" id="btn-clear-queue">Clear</button>
+            </div>
+            <div id="routine-queue">
+              <div class="empty-state" id="empty-queue">
+                <div class="empty-glyph">&#9201;</div>
+                <p>Queue is empty</p>
+                <span>Add blocks to build your session</span>
+              </div>
+            </div>
+            <div class="queue-total" id="queue-total" style="display:none">
+              Total: <span id="queue-total-time">0:00</span>
+            </div>
+          </div>
+
+          <div class="routine-timer-wrap">
+            <div class="routine-section-label">Now playing</div>
+            <div class="timer-card" id="timer-card">
+              <div class="timer-block-name" id="timer-block-name">—</div>
+              <div class="timer-display" id="timer-display">00:00</div>
+              <div class="timer-progress-wrap">
+                <div class="timer-progress-bar" id="timer-progress-bar"></div>
+              </div>
+              <div class="timer-controls">
+                <button class="timer-btn" id="btn-timer-prev" title="Previous">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="19 20 9 12 19 4 19 20"/><line x1="5" y1="19" x2="5" y2="5"/></svg>
+                </button>
+                <button class="timer-btn timer-btn-main" id="btn-timer-play">
+                  <svg id="icon-play" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                  <svg id="icon-pause" viewBox="0 0 24 24" fill="currentColor" style="display:none"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+                </button>
+                <button class="timer-btn" id="btn-timer-next" title="Next">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19"/></svg>
+                </button>
+              </div>
+              <div class="timer-up-next" id="timer-up-next"></div>
+            </div>
+
+            <div class="quick-add-wrap" id="quick-add-wrap" style="display:none">
+              <div class="routine-section-label" style="margin-bottom:10px">From library</div>
+              <div id="quick-add-list"></div>
+            </div>
           </div>
         </div>
       </section>
@@ -365,11 +434,59 @@ create table scenarios (
     </div>
   </div>
 
+
+  <!-- add block modal -->
+  <div id="block-modal-overlay" class="modal-backdrop hidden">
+    <div class="modal">
+      <div class="modal-hdr">
+        <span id="block-modal-title">Add block</span>
+        <button class="modal-x" id="block-modal-close">&#x2715;</button>
+      </div>
+      <div class="field">
+        <label for="block-name">Name</label>
+        <input type="text" id="block-name" placeholder="e.g. Tile Frenzy" />
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="block-min">Minutes</label>
+          <input type="number" id="block-min" min="0" max="120" value="5" />
+        </div>
+        <div class="field">
+          <label for="block-sec">Seconds</label>
+          <input type="number" id="block-sec" min="0" max="59" value="0" />
+        </div>
+      </div>
+      <div class="field">
+        <label for="block-share">Share code <span class="optional">optional — to launch in KovaaK's</span></label>
+        <input type="text" id="block-share" class="mono" placeholder="KovaaKsXxxxxXxxxXxxx" />
+      </div>
+      <div class="modal-actions">
+        <button class="btn-ghost" id="block-modal-cancel">Cancel</button>
+        <button class="btn-primary" id="block-modal-confirm">Add to queue</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- load routine modal -->
+  <div id="load-routine-modal-overlay" class="modal-backdrop hidden">
+    <div class="modal">
+      <div class="modal-hdr">
+        <span>Load routine</span>
+        <button class="modal-x" id="load-routine-modal-close">&#x2715;</button>
+      </div>
+      <div id="saved-routines-list"></div>
+      <div class="modal-actions">
+        <button class="btn-ghost" id="load-routine-modal-cancel">Close</button>
+      </div>
+    </div>
+  </div>
+
   <div id="toast"></div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
   <script src="js/db.js"></script>
+  <script src="js/routine.js"></script>
   <script src="js/ui.js"></script>
   <script src="js/app.js"></script>
 </body>
