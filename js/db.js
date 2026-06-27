@@ -49,33 +49,16 @@ const DB = (() => {
 
   // ── playlists ──
 
-  async function getPlaylists(folderId = null) {
-    let q = client
-      .from("playlists")
-      .select("id, name, folder_id, game_tag, notes, created_at")
-      .order("name")
-
-    if (folderId !== null) {
-      q = folderId === "none"
-        ? q.is("folder_id", null)
-        : q.eq("folder_id", folderId)
-    }
-
-    const { data, error } = await q
-    if (error) throw error
-    return data
-  }
-
   async function getAllPlaylists() {
     const { data, error } = await client
       .from("playlists")
-      .select("id, name, folder_id, game_tag, notes, created_at")
+      .select("id, name, folder_id, game_tag, notes, share_code, created_at")
       .order("name")
     if (error) throw error
     return data
   }
 
-  async function uploadPlaylist({ name, folderId, gameTag, notes, fileData }) {
+  async function uploadPlaylist({ name, folderId, gameTag, notes, shareCode, fileData }) {
     const { data, error } = await client
       .from("playlists")
       .insert({
@@ -83,8 +66,30 @@ const DB = (() => {
         folder_id: folderId || null,
         game_tag: gameTag || null,
         notes: notes || null,
+        share_code: shareCode || null,
         file_data: fileData,
       })
+      .select()
+      .single()
+    if (error) throw error
+    return data
+  }
+
+  async function updatePlaylist(id, { name, folderId, gameTag, notes, shareCode, fileData }) {
+    const fields = {
+      name,
+      folder_id: folderId || null,
+      game_tag: gameTag || null,
+      notes: notes || null,
+      share_code: shareCode || null,
+    }
+    // only overwrite file if a new one was provided
+    if (fileData !== undefined) fields.file_data = fileData
+
+    const { data, error } = await client
+      .from("playlists")
+      .update(fields)
+      .eq("id", id)
       .select()
       .single()
     if (error) throw error
@@ -113,9 +118,9 @@ const DB = (() => {
     getFolders,
     createFolder,
     deleteFolder,
-    getPlaylists,
     getAllPlaylists,
     uploadPlaylist,
+    updatePlaylist,
     getPlaylistFile,
     deletePlaylist,
   }
