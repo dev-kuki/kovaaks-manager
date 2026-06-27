@@ -695,9 +695,50 @@ html, body {
   line-height: 1.7;
 }
 
-/* ── modal ── */
+/* ── launch button ── */
 
-#modal-overlay {
+.btn-launch {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(74, 222, 128, 0.08);
+  border: 1px solid rgba(74, 222, 128, 0.2);
+  color: var(--success);
+  border-radius: var(--radius-sm);
+  padding: 3px 8px;
+  font-family: var(--mono);
+  font-size: 10px;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.btn-launch:hover {
+  background: rgba(74, 222, 128, 0.15);
+  border-color: rgba(74, 222, 128, 0.4);
+}
+
+.btn-edit {
+  background: transparent;
+  border: none;
+  color: var(--text-3);
+  cursor: pointer;
+  padding: 3px 5px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  transition: color 0.15s, background 0.15s;
+}
+
+.btn-edit:hover {
+  color: var(--accent);
+  background: var(--accent-dim);
+}
+
+/* ── modals ── */
+
+#modal-overlay,
+#edit-modal-overlay {
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.6);
@@ -708,7 +749,8 @@ html, body {
   backdrop-filter: blur(3px);
 }
 
-#modal-overlay.hidden {
+#modal-overlay.hidden,
+#edit-modal-overlay.hidden {
   display: none;
 }
 
@@ -723,20 +765,31 @@ html, body {
   gap: 18px;
 }
 
+#edit-modal {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 22px;
+  width: 440px;
+  max-height: 90vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
 .modal-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-}
-
-#modal-title {
   font-family: var(--mono);
   font-size: 13px;
   font-weight: 500;
   color: var(--text);
 }
 
-#modal-close {
+#modal-close,
+#edit-modal-close {
   background: transparent;
   border: none;
   color: var(--text-3);
@@ -747,7 +800,8 @@ html, body {
   transition: color 0.15s;
 }
 
-#modal-close:hover { color: var(--text); }
+#modal-close:hover,
+#edit-modal-close:hover { color: var(--text); }
 
 .modal-actions {
   display: flex;
