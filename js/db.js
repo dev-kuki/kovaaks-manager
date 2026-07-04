@@ -69,5 +69,54 @@ const DB = (() => {
     if (error) throw error
   }
 
-  return { init, ready, ping, getFolders, createFolder, deleteFolder, getAllPlaylists, uploadPlaylist, updatePlaylist, getPlaylistFile, deletePlaylist, getAllPlaylistsWithFiles, getAllScenarios, insertScenario, updateScenario, deleteScenario }
+  // sens
+  async function getSens() {
+    const { data, error } = await client.from("sens").select("*").order("scenario_type")
+    if (error) throw error; return data
+  }
+  async function upsertSens(scenarioType, cm360) {
+    const { error } = await client.from("sens").upsert({ scenario_type: scenarioType, cm360, updated_at: new Date().toISOString() }, { onConflict: "scenario_type" })
+    if (error) throw error
+  }
+  async function addSensType(scenarioType) {
+    const { error } = await client.from("sens").insert({ scenario_type: scenarioType })
+    if (error) throw error
+  }
+  async function deleteSensType(id) {
+    const { error } = await client.from("sens").delete().eq("id", id)
+    if (error) throw error
+  }
+
+  // aimbeast folders
+  async function getAimFolders() {
+    const { data, error } = await client.from("aimbeast_folders").select("*").order("name")
+    if (error) throw error; return data
+  }
+  async function createAimFolder(name) {
+    const { data, error } = await client.from("aimbeast_folders").insert({ name }).select().single()
+    if (error) throw error; return data
+  }
+  async function deleteAimFolder(id) {
+    const { error } = await client.from("aimbeast_folders").delete().eq("id", id)
+    if (error) throw error
+  }
+
+  // aimbeast playlists
+  async function getAllAimPlaylists() {
+    const { data, error } = await client.from("aimbeast_playlists").select("id,name,folder_id,game_tag,notes,workshop_url,playlist_code,created_at").order("name")
+    if (error) throw error; return data
+  }
+  async function uploadAimPlaylist({ name, folderId, gameTag, notes, workshopUrl, playlistCode }) {
+    const { data, error } = await client.from("aimbeast_playlists").insert({ name, folder_id: folderId||null, game_tag: gameTag||null, notes: notes||null, workshop_url: workshopUrl||null, playlist_code: playlistCode||null }).select().single()
+    if (error) throw error; return data
+  }
+  async function updateAimPlaylist(id, { name, folderId, gameTag, notes, workshopUrl, playlistCode }) {
+    const { data, error } = await client.from("aimbeast_playlists").update({ name, folder_id: folderId||null, game_tag: gameTag||null, notes: notes||null, workshop_url: workshopUrl||null, playlist_code: playlistCode||null }).eq("id", id).select().single()
+    if (error) throw error; return data
+  }
+  async function deleteAimPlaylist(id) {
+    const { error } = await client.from("aimbeast_playlists").delete().eq("id", id)
+    if (error) throw error
+  }
+  return { init, ready, ping, getFolders, createFolder, deleteFolder, getAllPlaylists, uploadPlaylist, updatePlaylist, getPlaylistFile, deletePlaylist, getAllPlaylistsWithFiles, getAllScenarios, insertScenario, updateScenario, deleteScenario, getSens, upsertSens, addSensType, deleteSensType, getAimFolders, createAimFolder, deleteAimFolder, getAllAimPlaylists, uploadAimPlaylist, updateAimPlaylist, deleteAimPlaylist }
 })()
