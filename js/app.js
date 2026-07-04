@@ -49,6 +49,8 @@
       UI.renderFolders(folders, playlists, plQuery)
       UI.renderScenarios(scenarios, scQuery)
       Routine.populateQuickAdd(playlists, scenarios)
+      await initSens()
+      await initAimbeast()
     } catch (err) { UI.toast("refresh failed: " + err.message) }
   }
 
