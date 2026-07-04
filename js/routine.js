@@ -155,10 +155,9 @@ const Routine = (() => {
 
   // ── block add ──
 
-  function addBlock({ name, mins, secs, shareCode }) {
-    const total = (parseInt(mins) || 0) * 60 + (parseInt(secs) || 0)
-    if (!name || total <= 0) return false
-    queue.push({ id: Date.now() + Math.random(), name, totalSecs: total, shareCode: shareCode || "" })
+  function addBlock({ name, totalSecs, shareCode }) {
+    if (!name || totalSecs <= 0) return false
+    queue.push({ id: Date.now() + Math.random(), name, totalSecs, shareCode: shareCode || "" })
     renderQueue()
     return true
   }
@@ -227,7 +226,7 @@ const Routine = (() => {
 
     list.addEventListener("click", e => {
       const btn = e.target.closest(".quick-add-btn"); if (!btn) return
-      addBlock({ name: btn.dataset.qaName, mins: 5, secs: 0, shareCode: btn.dataset.qaCode })
+      addBlock({ name: btn.dataset.qaName, totalSecs: 300, shareCode: btn.dataset.qaCode })
       UI.toast(`added "${btn.dataset.qaName}"`)
     })
   }
@@ -271,11 +270,23 @@ const Routine = (() => {
   document.getElementById("btn-add-block").addEventListener("click", () => {
     document.getElementById("block-modal-overlay").classList.remove("hidden")
     document.getElementById("block-name").value = ""
-    document.getElementById("block-min").value = "5"
-    document.getElementById("block-sec").value = "0"
+    document.getElementById("block-duration").value = "5:00"
     document.getElementById("block-share").value = ""
-    document.getElementById("block-name").focus()
+    setTimeout(() => document.getElementById("block-name").focus(), 50)
   })
+
+  function parseDuration(str) {
+    // accepts: "5", "5:00", "5:30", "90" (seconds if no colon)
+    str = str.trim()
+    if (!str) return 0
+    if (str.includes(":")) {
+      const [m, s] = str.split(":").map(x => parseInt(x) || 0)
+      return m * 60 + s
+    }
+    const n = parseInt(str) || 0
+    // if > 99 treat as seconds, else as minutes
+    return n > 99 ? n : n * 60
+  }
 
   function closeBlockModal() {
     document.getElementById("block-modal-overlay").classList.add("hidden")
@@ -283,21 +294,26 @@ const Routine = (() => {
 
   document.getElementById("block-modal-close").addEventListener("click", closeBlockModal)
   document.getElementById("block-modal-cancel").addEventListener("click", closeBlockModal)
-  document.getElementById("block-modal-overlay").addEventListener("click", e => { if (e.target === document.getElementById("block-modal-overlay")) closeBlockModal() })
+  document.getElementById("block-modal-overlay").addEventListener("click", e => {
+    if (e.target === document.getElementById("block-modal-overlay")) closeBlockModal()
+  })
 
   document.getElementById("block-modal-confirm").addEventListener("click", () => {
     const name = document.getElementById("block-name").value.trim()
-    const mins = document.getElementById("block-min").value
-    const secs = document.getElementById("block-sec").value
     const share = document.getElementById("block-share").value.trim()
+    const totalSecs = parseDuration(document.getElementById("block-duration").value)
     if (!name) { document.getElementById("block-name").focus(); return }
-    const ok = Routine.addBlock({ name, mins, secs, shareCode: share })
-    if (ok) { closeBlockModal(); UI.toast(`"${name}" added to queue`) }
-    else UI.toast("set a duration greater than 0")
+    if (totalSecs <= 0) { document.getElementById("block-duration").focus(); UI.toast("set a duration greater than 0"); return }
+    queue.push({ id: Date.now() + Math.random(), name, totalSecs, shareCode: share })
+    renderQueue()
+    closeBlockModal()
+    UI.toast(`"${name}" added to queue`)
   })
 
-  document.getElementById("block-name").addEventListener("keydown", e => {
-    if (e.key === "Enter") document.getElementById("block-modal-confirm").click()
+  ;["block-name", "block-duration", "block-share"].forEach(id => {
+    document.getElementById(id).addEventListener("keydown", e => {
+      if (e.key === "Enter") document.getElementById("block-modal-confirm").click()
+    })
   })
 
   // save routine
