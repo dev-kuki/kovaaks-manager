@@ -777,3 +777,103 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 .saved-routine-row:last-child { border-bottom: none; }
 .saved-routine-name { flex: 1; font-size: 13px; font-weight: 500; }
 .saved-routine-meta { font-family: var(--mono); font-size: 10.5px; color: var(--text-3); }
+
+/* ── sensitivity ── */
+
+.sens-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 10px;
+  max-width: 900px;
+}
+
+.sens-card {
+  background: var(--surface);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--r);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: border-color 0.15s;
+}
+.sens-card:hover { border-color: var(--border); }
+
+.sens-type-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-3);
+}
+
+.sens-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sens-input {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 22px;
+  font-weight: 500;
+  padding: 6px 10px;
+  width: 100%;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.sens-input:focus { border-color: var(--accent); }
+.sens-input::placeholder { color: var(--text-3); font-size: 16px; }
+
+.sens-unit {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text-3);
+  flex-shrink: 0;
+}
+
+.sens-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sens-save-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  color: var(--text-3);
+  font-family: var(--mono);
+  font-size: 10px;
+  padding: 3px 9px;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+.sens-save-btn:hover { color: var(--accent); border-color: var(--accent); }
+.sens-save-btn.saved { color: var(--success); border-color: var(--success); }
+
+/* ── aimbeast folder/row (reuses folder styles, small additions) ── */
+
+.aim-badge {
+  font-family: var(--mono);
+  font-size: 9.5px;
+  background: rgba(0,212,170,0.08);
+  color: var(--success);
+  border: 1px solid rgba(0,212,170,0.2);
+  padding: 2px 7px;
+  border-radius: 20px;
+}
+
+.btn-open-url {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: rgba(0,212,170,0.08); border: 1px solid rgba(0,212,170,0.2);
+  color: var(--success); border-radius: var(--r-sm);
+  padding: 4px 9px; font-family: var(--mono); font-size: 10.5px;
+  text-decoration: none; cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.btn-open-url:hover { background: rgba(0,212,170,0.15); border-color: rgba(0,212,170,0.4); }
