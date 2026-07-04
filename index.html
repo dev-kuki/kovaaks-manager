@@ -43,6 +43,14 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 15"/></svg>
             <span>Routine</span>
           </button>
+          <button class="nav-btn" data-view="sens">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+            <span>Sensitivity</span>
+          </button>
+          <button class="nav-btn" data-view="aimbeast">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="8"/><line x1="12" y1="2" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="22"/><line x1="2" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="22" y2="12"/></svg>
+            <span>Aimbeast</span>
+          </button>
           <button class="nav-btn" data-view="settings">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93l-1.41 1.41M4.93 4.93l1.41 1.41M12 2v2M12 20v2M20 12h2M2 12h2M19.07 19.07l-1.41-1.41M4.93 19.07l1.41-1.41"/></svg>
             <span>Settings</span>
@@ -221,6 +229,55 @@
               <div class="routine-section-label" style="margin-bottom:10px">From library</div>
               <div id="quick-add-list"></div>
             </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- sensitivity -->
+      <section id="view-sens" class="view">
+        <div class="topbar">
+          <div class="topbar-left">
+            <h1>Sensitivity</h1>
+          </div>
+          <div class="topbar-right">
+            <button class="btn-primary" id="btn-add-sens-type">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Add type
+            </button>
+          </div>
+        </div>
+        <div class="sens-grid" id="sens-grid">
+          <div class="empty-state"><div class="empty-glyph">⊕</div><p>Loading…</p></div>
+        </div>
+      </section>
+
+      <!-- aimbeast -->
+      <section id="view-aimbeast" class="view">
+        <div class="topbar">
+          <div class="topbar-left">
+            <h1>Aimbeast</h1>
+            <span class="count-badge" id="aim-count">0</span>
+          </div>
+          <div class="topbar-right">
+            <div class="search-box">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input type="text" id="aim-search" placeholder="search…" />
+            </div>
+            <button class="btn-primary" id="btn-new-aim-folder">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              New folder
+            </button>
+            <button class="btn-primary" id="btn-add-aim-playlist">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Add playlist
+            </button>
+          </div>
+        </div>
+        <div id="aim-folders-container">
+          <div class="empty-state" id="empty-aim">
+            <div class="empty-glyph">⬡</div>
+            <p>No Aimbeast playlists yet</p>
+            <span>Add playlists with their workshop URL or code</span>
           </div>
         </div>
       </section>
@@ -439,26 +496,20 @@ create table scenarios (
   <div id="block-modal-overlay" class="modal-backdrop hidden">
     <div class="modal">
       <div class="modal-hdr">
-        <span id="block-modal-title">Add block</span>
+        <span>Add block</span>
         <button class="modal-x" id="block-modal-close">&#x2715;</button>
       </div>
       <div class="field">
         <label for="block-name">Name</label>
-        <input type="text" id="block-name" placeholder="e.g. Tile Frenzy" />
+        <input type="text" id="block-name" placeholder="e.g. Tile Frenzy" autocomplete="off" />
       </div>
-      <div class="field-row">
-        <div class="field">
-          <label for="block-min">Minutes</label>
-          <input type="number" id="block-min" min="0" max="120" value="5" />
-        </div>
-        <div class="field">
-          <label for="block-sec">Seconds</label>
-          <input type="number" id="block-sec" min="0" max="59" value="0" />
-        </div>
+      <div class="field">
+        <label for="block-duration">Duration <span class="optional">mm:ss</span></label>
+        <input type="text" id="block-duration" placeholder="5:00" class="mono" autocomplete="off" />
       </div>
       <div class="field">
         <label for="block-share">Share code <span class="optional">optional — to launch in KovaaK's</span></label>
-        <input type="text" id="block-share" class="mono" placeholder="KovaaKsXxxxxXxxxXxxx" />
+        <input type="text" id="block-share" class="mono" placeholder="KovaaKsXxxxxXxxxXxxx" autocomplete="off" />
       </div>
       <div class="modal-actions">
         <button class="btn-ghost" id="block-modal-cancel">Cancel</button>
@@ -481,12 +532,75 @@ create table scenarios (
     </div>
   </div>
 
+
+  <!-- add sens type modal -->
+  <div id="sens-type-modal-overlay" class="modal-backdrop hidden">
+    <div class="modal">
+      <div class="modal-hdr">
+        <span>Add scenario type</span>
+        <button class="modal-x" id="sens-type-modal-close">&#x2715;</button>
+      </div>
+      <div class="field">
+        <label for="sens-type-input">Type name</label>
+        <input type="text" id="sens-type-input" placeholder="e.g. Micro Flick" autocomplete="off" />
+      </div>
+      <div class="modal-actions">
+        <button class="btn-ghost" id="sens-type-modal-cancel">Cancel</button>
+        <button class="btn-primary" id="sens-type-modal-confirm">Add</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- add aimbeast playlist modal -->
+  <div id="aim-modal-overlay" class="modal-backdrop hidden">
+    <div class="modal modal-wide">
+      <div class="modal-hdr">
+        <span id="aim-modal-title">Add Aimbeast playlist</span>
+        <button class="modal-x" id="aim-modal-close">&#x2715;</button>
+      </div>
+      <div class="field">
+        <label for="aim-pl-name">Name</label>
+        <input type="text" id="aim-pl-name" placeholder="e.g. Voltaic B — Dynamic" autocomplete="off" />
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="aim-pl-folder">Folder</label>
+          <div class="select-wrap">
+            <select id="aim-pl-folder"><option value="">— no folder —</option></select>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+        </div>
+        <div class="field">
+          <label for="aim-pl-game">Game tag <span class="optional">optional</span></label>
+          <input type="text" id="aim-pl-game" placeholder="CS2, Valorant…" />
+        </div>
+      </div>
+      <div class="field">
+        <label for="aim-pl-url">Workshop URL <span class="optional">optional</span></label>
+        <input type="text" id="aim-pl-url" placeholder="https://aimbeast.com/workshop/…" class="mono" />
+      </div>
+      <div class="field">
+        <label for="aim-pl-code">Playlist code <span class="optional">optional — local copy</span></label>
+        <textarea id="aim-pl-code" rows="4" placeholder="paste playlist code here…" class="mono"></textarea>
+      </div>
+      <div class="field">
+        <label for="aim-pl-notes">Notes <span class="optional">optional</span></label>
+        <textarea id="aim-pl-notes" rows="2" placeholder="difficulty, source, what it trains…"></textarea>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-ghost" id="aim-modal-cancel">Cancel</button>
+        <button class="btn-primary" id="aim-modal-confirm">Save</button>
+      </div>
+    </div>
+  </div>
+
   <div id="toast"></div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
   <script src="js/db.js"></script>
   <script src="js/routine.js"></script>
+  <script src="js/sens.js"></script>
   <script src="js/ui.js"></script>
   <script src="js/app.js"></script>
 </body>
