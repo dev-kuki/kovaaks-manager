@@ -18,6 +18,8 @@
       document.querySelectorAll(".view").forEach(v => v.classList.remove("active"))
       btn.classList.add("active")
       document.getElementById("view-" + btn.dataset.view).classList.add("active")
+      if (btn.dataset.view === "sens") initSens()
+      if (btn.dataset.view === "aimbeast") initAimbeast()
     })
   })
 
