@@ -199,7 +199,7 @@ const Routine = (() => {
   }
 
   function deleteRoutine(name) {
-    const saved = JSON.parse(localStorage.getItem("kv-routines") || "{}"))
+    const saved = JSON.parse(localStorage.getItem("kv-routines") || "{}")
     delete saved[name]
     localStorage.setItem("kv-routines", JSON.stringify(saved))
   }
