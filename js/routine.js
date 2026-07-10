@@ -1,5 +1,9 @@
 // routine.js — local session timer, no supabase needed
 
+function esc(str) {
+  return String(str).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;")
+}
+
 const Routine = (() => {
   let queue = []        // array of { id, name, totalSecs, shareCode }
   let currentIdx = -1
@@ -176,19 +180,30 @@ const Routine = (() => {
 
   // ── save / load (localStorage) ──
 
+  function readSavedRoutines() {
+    try {
+      const parsed = JSON.parse(localStorage.getItem("kv-routines") || "{}")
+      return (parsed && typeof parsed === "object") ? parsed : {}
+    } catch {
+      // corrupted data — don't wipe it out, just fail safe so the rest of the app keeps working
+      return {}
+    }
+  }
+
   function saveRoutine(name) {
-    const saved = JSON.parse(localStorage.getItem("kv-routines") || "{}")
+    const saved = readSavedRoutines()
     saved[name] = { name, blocks: queue.map(b => ({ name: b.name, totalSecs: b.totalSecs, shareCode: b.shareCode })), savedAt: Date.now() }
-    localStorage.setItem("kv-routines", JSON.stringify(saved))
+    try { localStorage.setItem("kv-routines", JSON.stringify(saved)) }
+    catch { return false }
     return true
   }
 
   function getSavedRoutines() {
-    return Object.values(JSON.parse(localStorage.getItem("kv-routines") || "{}"))
+    return Object.values(readSavedRoutines())
   }
 
   function loadRoutine(name) {
-    const saved = JSON.parse(localStorage.getItem("kv-routines") || "{}")
+    const saved = readSavedRoutines()
     const routine = saved[name]; if (!routine) return false
     clearQueue()
     routine.blocks.forEach(b => {
@@ -199,7 +214,7 @@ const Routine = (() => {
   }
 
   function deleteRoutine(name) {
-    const saved = JSON.parse(localStorage.getItem("kv-routines") || "{}")
+    const saved = readSavedRoutines()
     delete saved[name]
     localStorage.setItem("kv-routines", JSON.stringify(saved))
   }
@@ -236,10 +251,6 @@ const Routine = (() => {
   function fmt(s) {
     const m = Math.floor(s / 60), sec = s % 60
     return `${String(m).padStart(2,"0")}:${String(sec).padStart(2,"0")}`
-  }
-
-  function esc(str) {
-    return String(str).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;")
   }
 
   return { addBlock, removeBlock, clearQueue, play, pause, prev, next, saveRoutine, getSavedRoutines, loadRoutine, deleteRoutine, populateQuickAdd, renderQueue, updateTimerDisplay, get running() { return running } }
@@ -304,8 +315,7 @@ const Routine = (() => {
     const totalSecs = parseDuration(document.getElementById("block-duration").value)
     if (!name) { document.getElementById("block-name").focus(); return }
     if (totalSecs <= 0) { document.getElementById("block-duration").focus(); UI.toast("set a duration greater than 0"); return }
-    queue.push({ id: Date.now() + Math.random(), name, totalSecs, shareCode: share })
-    renderQueue()
+    Routine.addBlock({ name, totalSecs, shareCode: share })
     closeBlockModal()
     UI.toast(`"${name}" added to queue`)
   })
@@ -338,10 +348,10 @@ const Routine = (() => {
         const total = r.blocks.reduce((s, b) => s + b.totalSecs, 0)
         const mins = Math.floor(total / 60)
         row.innerHTML = `
-          <span class="saved-routine-name">${r.name}</span>
+          <span class="saved-routine-name">${esc(r.name)}</span>
           <span class="saved-routine-meta">${r.blocks.length} blocks · ${mins}m</span>
-          <button class="btn-primary btn-sm" data-load="${r.name}">Load</button>
-          <button class="btn-icon" data-del-routine="${r.name}" title="Delete">
+          <button class="btn-primary btn-sm" data-load="${esc(r.name)}">Load</button>
+          <button class="btn-icon" data-del-routine="${esc(r.name)}" title="Delete">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
           </button>`
         list.appendChild(row)
