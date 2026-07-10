@@ -21,43 +21,49 @@
   --mono:       'JetBrains Mono', monospace;
   --r:          8px;
   --r-sm:       5px;
-  --sidebar-w:  220px;
+  --topnav-h:   60px;
 }
 
 html, body { height: 100%; background: var(--bg); color: var(--text); font-family: var(--sans); font-size: 14px; line-height: 1.5; -webkit-font-smoothing: antialiased; }
 
-#app { display: flex; height: 100vh; overflow: hidden; }
+#app { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
 
-/* ── sidebar ── */
+/* ── top nav ── */
 
-#sidebar {
-  width: var(--sidebar-w);
-  min-width: var(--sidebar-w);
+#topnav {
+  min-height: var(--topnav-h);
   background: var(--surface);
-  border-right: 1px solid var(--border);
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  padding: 20px 12px;
+  border-bottom: 1px solid var(--border);
   position: relative;
-  overflow: hidden;
+  flex-shrink: 0;
 }
 
-#sidebar::before {
+#topnav::before {
   content: '';
   position: absolute;
   inset: 0;
-  background-image: repeating-linear-gradient(0deg, transparent, transparent 24px, rgba(255,255,255,0.012) 24px, rgba(255,255,255,0.012) 25px);
+  background-image: repeating-linear-gradient(90deg, transparent, transparent 24px, rgba(255,255,255,0.012) 24px, rgba(255,255,255,0.012) 25px);
   pointer-events: none;
+}
+
+.topnav-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  height: 100%;
+  min-height: var(--topnav-h);
+  padding: 8px 20px;
+  flex-wrap: wrap;
 }
 
 .logo {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 4px 4px 20px;
-  border-bottom: 1px solid var(--border-soft);
-  margin-bottom: 12px;
+  padding-right: 18px;
+  border-right: 1px solid var(--border-soft);
+  flex-shrink: 0;
 }
 
 .logo-icon {
@@ -79,13 +85,13 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 .logo-main { font-size: 13px; font-weight: 600; color: var(--text); }
 .logo-sub  { font-size: 10px; font-weight: 400; color: var(--text-3); font-family: var(--mono); }
 
-.nav { display: flex; flex-direction: column; gap: 2px; }
+.nav { display: flex; flex-direction: row; align-items: center; gap: 2px; flex-wrap: wrap; flex: 1; }
 
 .nav-btn {
   display: flex;
   align-items: center;
-  gap: 9px;
-  padding: 9px 10px;
+  gap: 7px;
+  padding: 8px 12px;
   border-radius: var(--r-sm);
   border: none;
   background: transparent;
@@ -95,7 +101,7 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
   font-weight: 500;
   cursor: pointer;
   text-align: left;
-  width: 100%;
+  white-space: nowrap;
   transition: color 0.15s, background 0.15s;
   position: relative;
 }
@@ -106,8 +112,8 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 .nav-btn.active::before {
   content: '';
   position: absolute;
-  left: 0; top: 20%; bottom: 20%;
-  width: 2px;
+  left: 14%; right: 14%; bottom: -9px;
+  height: 2px;
   background: var(--accent);
   border-radius: 2px;
 }
@@ -123,6 +129,8 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
   font-family: var(--mono);
   font-size: 10.5px;
   color: var(--text-3);
+  flex-shrink: 0;
+  margin-left: auto;
 }
 
 .conn-dot {
@@ -138,8 +146,8 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 
 /* ── main ── */
 
-#main { flex: 1; overflow-y: auto; background: var(--bg); }
-.view { display: none; padding: 28px 32px; max-width: 960px; }
+#main { flex: 1; min-height: 0; overflow-y: auto; background: var(--bg); }
+.view { display: none; padding: 28px 32px; max-width: 960px; margin: 0 auto; }
 .view.active { display: block; }
 
 /* ── topbar ── */
@@ -877,3 +885,23 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
   transition: background 0.15s, border-color 0.15s;
 }
 .btn-open-url:hover { background: rgba(0,212,170,0.15); border-color: rgba(0,212,170,0.4); }
+
+/* ── responsive ── */
+
+@media (max-width: 900px) {
+  .topnav-row { padding: 8px 14px; gap: 14px; }
+  .logo-sub { display: none; }
+  .nav-btn span { display: none; }
+  .nav-btn { padding: 9px; }
+  .conn-pill span:last-child { display: none; }
+  .view { padding: 20px 16px; }
+  .field-row { grid-template-columns: 1fr; }
+  .routine-layout { grid-template-columns: 1fr; }
+  .routine-timer-wrap { position: static; }
+  .transfer-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 520px) {
+  .topbar { flex-wrap: wrap; }
+  .search-box input { width: 110px; }
+}
