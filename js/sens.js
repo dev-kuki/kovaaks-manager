@@ -163,16 +163,24 @@ function makeAimFolderEl(folder, playlists, ghost = false) {
   return el
 }
 
+function safeUrl(url) {
+  try {
+    const u = new URL(url, window.location.href)
+    return (u.protocol === "http:" || u.protocol === "https:") ? u.href : null
+  } catch { return null }
+}
+
 function makeAimPlaylistRow(p) {
   const row = document.createElement("div"); row.className = "playlist-row"
+  const url = p.workshop_url ? safeUrl(p.workshop_url) : null
   row.innerHTML = `
     <span class="pl-dot" style="background:var(--success)"></span>
     <span class="pl-name">${esc(p.name)}</span>
     ${p.game_tag ? `<span class="pl-tag">${esc(p.game_tag)}</span>` : ""}
-    ${p.workshop_url ? `<span class="aim-badge">workshop</span>` : ""}
+    ${url ? `<span class="aim-badge">workshop</span>` : ""}
     ${p.playlist_code ? `<span class="aim-badge">code</span>` : ""}
     <div class="pl-actions">
-      ${p.workshop_url ? `<a class="btn-open-url" href="${esc(p.workshop_url)}" target="_blank" rel="noopener">open</a>` : ""}
+      ${url ? `<a class="btn-open-url" href="${esc(url)}" target="_blank" rel="noopener">open</a>` : ""}
       <button class="btn-edit" data-aim-edit="${p.id}">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
       </button>
