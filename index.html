@@ -12,8 +12,8 @@
 <body>
   <div id="app">
 
-    <aside id="sidebar">
-      <div class="sidebar-top">
+    <header id="topnav">
+      <div class="topnav-row">
         <div class="logo">
           <div class="logo-icon">K</div>
           <div class="logo-text">
@@ -56,15 +56,13 @@
             <span>Settings</span>
           </button>
         </nav>
-      </div>
 
-      <div class="sidebar-bottom">
         <div class="conn-pill" id="conn-pill">
           <span class="conn-dot" id="conn-dot"></span>
           <span id="conn-label">not connected</span>
         </div>
       </div>
-    </aside>
+    </header>
 
     <main id="main">
 
@@ -333,13 +331,13 @@
                 <li>Open <strong>SQL Editor</strong> and run the table setup queries</li>
                 <li>Paste your URL and key below and hit Save</li>
               </ol>
-              <pre><code>create table folders (
+              <pre><code>create table if not exists folders (
   id uuid default gen_random_uuid() primary key,
   name text not null,
   created_at timestamptz default now()
 );
 
-create table playlists (
+create table if not exists playlists (
   id uuid default gen_random_uuid() primary key,
   name text not null,
   folder_id uuid references folders(id) on delete set null,
@@ -350,12 +348,36 @@ create table playlists (
   created_at timestamptz default now()
 );
 
-create table scenarios (
+create table if not exists scenarios (
   id uuid default gen_random_uuid() primary key,
   name text not null,
   share_code text,
   game_tag text,
   notes text,
+  created_at timestamptz default now()
+);
+
+create table if not exists sens (
+  id uuid default gen_random_uuid() primary key,
+  scenario_type text not null unique,
+  cm360 numeric,
+  updated_at timestamptz default now()
+);
+
+create table if not exists aimbeast_folders (
+  id uuid default gen_random_uuid() primary key,
+  name text not null,
+  created_at timestamptz default now()
+);
+
+create table if not exists aimbeast_playlists (
+  id uuid default gen_random_uuid() primary key,
+  name text not null,
+  folder_id uuid references aimbeast_folders(id) on delete set null,
+  game_tag text,
+  notes text,
+  workshop_url text,
+  playlist_code text,
   created_at timestamptz default now()
 );</code></pre>
             </div>
@@ -596,8 +618,8 @@ create table scenarios (
 
   <div id="toast"></div>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.2/dist/umd/supabase.js" integrity="sha384-yifgV8iFWyp5cgu+V1G1rtlEHpEErPlL5fTrkUELIsWq0CIVDON2WP/NlXVJT3vO" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js" integrity="sha384-+mbV2IY1Zk/X1p/nWllGySJSUN8uMs+gUAN10Or95UBH0fpj6GfKgPmgC5EXieXG" crossorigin="anonymous"></script>
   <script src="js/db.js"></script>
   <script src="js/routine.js"></script>
   <script src="js/sens.js"></script>
