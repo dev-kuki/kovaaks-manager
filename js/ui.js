@@ -38,6 +38,9 @@ const UI = (() => {
       if (p.folder_id) { if (!byFolder[p.folder_id]) byFolder[p.folder_id] = []; byFolder[p.folder_id].push(p) }
       else unassigned.push(p)
     })
+    const byPinFirst = (a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0)
+    Object.values(byFolder).forEach(list => list.sort(byPinFirst))
+    unassigned.sort(byPinFirst)
 
     container.innerHTML = ""
     const visible = playlists.filter(p => !query || p.name.toLowerCase().includes(query) || (p.game_tag||"").toLowerCase().includes(query))
@@ -50,7 +53,7 @@ const UI = (() => {
     const list = document.createElement("div"); list.className = "folders-list"
     folders.forEach(f => { const items = byFolder[f.id]||[]; if (query && !items.length) return; list.appendChild(makeFolderEl(f, items)) })
     if (unassigned.length) list.appendChild(makeFolderEl({ id: "none", name: "Unsorted" }, unassigned, true))
-    if (!list.children.length) { container.innerHTML = `<div class="empty-state"><div class="empty-glyph">◻</div><p>No results for "${query}"</p></div>`; return }
+    if (!list.children.length) { container.innerHTML = `<div class="empty-state"><div class="empty-glyph">◻</div><p>No results for "${esc(query)}"</p></div>`; return }
     container.appendChild(list)
   }
 
@@ -85,8 +88,11 @@ const UI = (() => {
   }
 
   function makePlaylistRow(p) {
-    const row = document.createElement("div"); row.className = "playlist-row"; row.dataset.playlistId = p.id
+    const row = document.createElement("div"); row.className = "playlist-row" + (p.pinned ? " is-pinned" : ""); row.dataset.playlistId = p.id
     row.innerHTML = `
+      <button class="btn-star" data-pin-pl="${p.id}" data-pinned="${p.pinned ? "1" : "0"}" title="${p.pinned ? "Unpin" : "Pin"}">
+        <svg viewBox="0 0 24 24" fill="${p.pinned ? "currentColor" : "none"}" stroke="currentColor" stroke-width="1.8"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+      </button>
       <span class="pl-dot"></span>
       <span class="pl-name">${esc(p.name)}</span>
       ${p.game_tag ? `<span class="pl-tag">${esc(p.game_tag)}</span>` : ""}
@@ -111,11 +117,12 @@ const UI = (() => {
   function renderScenarios(scenarios, query = "") {
     const container = document.getElementById("scenarios-container")
     const filtered = scenarios.filter(s => !query || s.name.toLowerCase().includes(query) || (s.game_tag||"").toLowerCase().includes(query))
+    filtered.sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0))
     document.getElementById("scenario-count").textContent = filtered.length
     container.innerHTML = ""
 
     if (!filtered.length) {
-      container.innerHTML = `<div class="empty-state"><div class="empty-glyph">◎</div><p>${query ? `No results for "${query}"` : "No scenarios yet"}</p><span>Add scenarios with their share codes to launch them directly</span></div>`
+      container.innerHTML = `<div class="empty-state"><div class="empty-glyph">◎</div><p>${query ? `No results for "${esc(query)}"` : "No scenarios yet"}</p><span>Add scenarios with their share codes to launch them directly</span></div>`
       return
     }
 
@@ -125,8 +132,11 @@ const UI = (() => {
   }
 
   function makeScenarioCard(s) {
-    const card = document.createElement("div"); card.className = "scenario-card"; card.dataset.scenarioId = s.id
+    const card = document.createElement("div"); card.className = "scenario-card" + (s.pinned ? " is-pinned" : ""); card.dataset.scenarioId = s.id
     card.innerHTML = `
+      <button class="btn-star btn-star-card" data-pin-sc="${s.id}" data-pinned="${s.pinned ? "1" : "0"}" title="${s.pinned ? "Unpin" : "Pin"}">
+        <svg viewBox="0 0 24 24" fill="${s.pinned ? "currentColor" : "none"}" stroke="currentColor" stroke-width="1.8"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+      </button>
       <div class="sc-name">${esc(s.name)}</div>
       ${s.game_tag ? `<span class="sc-tag">${esc(s.game_tag)}</span>` : ""}
       ${s.share_code ? `<div class="sc-code">${esc(s.share_code)}</div>` : ""}
