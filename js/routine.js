@@ -12,6 +12,49 @@ const Routine = (() => {
   let ticker = null
   let running = false
 
+  // ── sound ──
+
+  let audioCtx = null
+  let soundOn = (() => { try { return localStorage.getItem("kv-sound") !== "off" } catch { return true } })()
+
+  function beep(freq, dur, vol = 0.15) {
+    if (!soundOn) return
+    try {
+      audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)()
+      const osc = audioCtx.createOscillator(), gain = audioCtx.createGain()
+      osc.type = "sine"; osc.frequency.value = freq
+      gain.gain.setValueAtTime(vol, audioCtx.currentTime)
+      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur)
+      osc.connect(gain); gain.connect(audioCtx.destination)
+      osc.start(); osc.stop(audioCtx.currentTime + dur)
+    } catch { /* audio not available — fail silently */ }
+  }
+
+  function toggleSound() {
+    soundOn = !soundOn
+    try { localStorage.setItem("kv-sound", soundOn ? "on" : "off") } catch {}
+    return soundOn
+  }
+
+  // ── autosave draft (survives refresh, separate from named saved routines) ──
+
+  function persistDraft() {
+    try { localStorage.setItem("kv-queue-draft", JSON.stringify({ queue, currentIdx })) } catch {}
+  }
+
+  function restoreDraft() {
+    try {
+      const raw = localStorage.getItem("kv-queue-draft")
+      if (!raw) return
+      const draft = JSON.parse(raw)
+      if (draft && Array.isArray(draft.queue) && draft.queue.length) {
+        queue = draft.queue
+        currentIdx = -1 // don't resume a running timer mid-block after a refresh
+        remaining = 0
+      }
+    } catch { /* corrupted draft — ignore, don't crash */ }
+  }
+
   // ── queue rendering ──
 
   function renderQueue() {
@@ -19,6 +62,7 @@ const Routine = (() => {
     const totalEl   = document.getElementById("queue-total")
     const totalTime = document.getElementById("queue-total-time")
     container.innerHTML = ""
+    persistDraft()
 
     if (!queue.length) {
       container.innerHTML = `<div class="empty-state" id="empty-queue"><div class="empty-glyph">⏱</div><p>Queue is empty</p><span>Add blocks to build your session</span></div>`
@@ -42,6 +86,9 @@ const Routine = (() => {
           ${block.shareCode ? `<a class="btn-launch" href="steam://run/824270/?action=jump-to-playlist;sharecode=${esc(block.shareCode)}">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>open
           </a>` : ""}
+          <button class="btn-icon" data-edit-idx="${i}" title="Edit">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+          </button>
           <button class="btn-icon" data-remove-idx="${i}" title="Remove">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           </button>
@@ -94,6 +141,7 @@ const Routine = (() => {
       if (remaining <= 0) {
         advance()
       } else {
+        if (remaining <= 3) beep(remaining === 1 ? 880 : 660, 0.12, 0.1)
         updateTimerDisplay()
       }
     }, 1000)
@@ -105,6 +153,7 @@ const Routine = (() => {
       remaining = queue[currentIdx].totalSecs
       renderQueue()
       updateTimerDisplay()
+      beep(520, 0.2, 0.14)
       // auto-open in kovaaks if share code present
       const block = queue[currentIdx]
       if (block.shareCode) {
@@ -118,6 +167,8 @@ const Routine = (() => {
       document.getElementById("timer-display").textContent = "done"
       document.getElementById("timer-display").className = "timer-display done"
       document.getElementById("timer-up-next").textContent = "session complete"
+      beep(660, 0.18, 0.14)
+      setTimeout(() => beep(880, 0.28, 0.14), 180)
     }
   }
 
@@ -171,6 +222,18 @@ const Routine = (() => {
     if (currentIdx >= queue.length) currentIdx = queue.length - 1
     renderQueue()
     updateTimerDisplay()
+  }
+
+  function getBlock(idx) {
+    return queue[idx] || null
+  }
+
+  function updateBlock(idx, { name, totalSecs, shareCode }) {
+    if (!queue[idx] || !name || totalSecs <= 0) return false
+    queue[idx] = { ...queue[idx], name, totalSecs, shareCode: shareCode || "" }
+    renderQueue()
+    if (idx === currentIdx) updateTimerDisplay()
+    return true
   }
 
   function clearQueue() {
@@ -253,7 +316,11 @@ const Routine = (() => {
     return `${String(m).padStart(2,"0")}:${String(sec).padStart(2,"0")}`
   }
 
-  return { addBlock, removeBlock, clearQueue, play, pause, prev, next, saveRoutine, getSavedRoutines, loadRoutine, deleteRoutine, populateQuickAdd, renderQueue, updateTimerDisplay, get running() { return running } }
+  restoreDraft()
+  document.addEventListener("DOMContentLoaded", () => { renderQueue(); updateTimerDisplay() })
+  if (document.readyState !== "loading") { renderQueue(); updateTimerDisplay() }
+
+  return { addBlock, removeBlock, getBlock, updateBlock, clearQueue, play, pause, prev, next, saveRoutine, getSavedRoutines, loadRoutine, deleteRoutine, populateQuickAdd, renderQueue, updateTimerDisplay, toggleSound, get soundOn() { return soundOn }, get running() { return running } }
 })()
 
 // ── wire up events ──
@@ -268,6 +335,8 @@ const Routine = (() => {
 
   // remove block from queue (delegated)
   document.getElementById("routine-queue").addEventListener("click", e => {
+    const editBtn = e.target.closest("[data-edit-idx]")
+    if (editBtn) { openBlockModal(parseInt(editBtn.dataset.editIdx)); return }
     const btn = e.target.closest("[data-remove-idx]"); if (!btn) return
     Routine.removeBlock(parseInt(btn.dataset.removeIdx))
   })
@@ -277,30 +346,63 @@ const Routine = (() => {
     if (confirm("Clear the queue?")) Routine.clearQueue()
   })
 
-  // add block modal
-  document.getElementById("btn-add-block").addEventListener("click", () => {
+  // add/edit block modal
+  let editingIdx = null
+
+  function openBlockModal(idx = null) {
+    editingIdx = idx
+    const title = document.getElementById("block-modal-title")
+    const confirmBtn = document.getElementById("block-modal-confirm")
     document.getElementById("block-modal-overlay").classList.remove("hidden")
-    document.getElementById("block-name").value = ""
-    document.getElementById("block-duration").value = "5:00"
-    document.getElementById("block-share").value = ""
+    setActiveChip(null)
+
+    if (idx !== null) {
+      const block = Routine.getBlock(idx)
+      title.textContent = "Edit block"
+      confirmBtn.textContent = "Save changes"
+      document.getElementById("block-name").value = block.name
+      document.getElementById("block-min").value = Math.floor(block.totalSecs / 60)
+      document.getElementById("block-sec").value = block.totalSecs % 60
+      document.getElementById("block-share").value = block.shareCode || ""
+    } else {
+      title.textContent = "Add block"
+      confirmBtn.textContent = "Add to queue"
+      document.getElementById("block-name").value = ""
+      document.getElementById("block-min").value = 5
+      document.getElementById("block-sec").value = 0
+      document.getElementById("block-share").value = ""
+    }
     setTimeout(() => document.getElementById("block-name").focus(), 50)
+  }
+  document.getElementById("btn-add-block").addEventListener("click", () => openBlockModal(null))
+
+  function setActiveChip(secs) {
+    document.querySelectorAll("#block-duration-presets .chip").forEach(c => {
+      c.classList.toggle("active", secs !== null && parseInt(c.dataset.secs) === secs)
+    })
+  }
+
+  document.getElementById("block-duration-presets").addEventListener("click", e => {
+    const chip = e.target.closest(".chip"); if (!chip) return
+    const secs = parseInt(chip.dataset.secs)
+    document.getElementById("block-min").value = Math.floor(secs / 60)
+    document.getElementById("block-sec").value = secs % 60
+    setActiveChip(secs)
   })
 
-  function parseDuration(str) {
-    // accepts: "5", "5:00", "5:30", "90" (seconds if no colon)
-    str = str.trim()
-    if (!str) return 0
-    if (str.includes(":")) {
-      const [m, s] = str.split(":").map(x => parseInt(x) || 0)
-      return m * 60 + s
-    }
-    const n = parseInt(str) || 0
-    // if > 99 treat as seconds, else as minutes
-    return n > 99 ? n : n * 60
+  ;["block-min", "block-sec"].forEach(id => {
+    document.getElementById(id).addEventListener("input", () => setActiveChip(null))
+  })
+
+  function readDurationInputs() {
+    const min = Math.max(0, parseInt(document.getElementById("block-min").value) || 0)
+    const sec = Math.max(0, Math.min(59, parseInt(document.getElementById("block-sec").value) || 0))
+    return min * 60 + sec
   }
 
   function closeBlockModal() {
     document.getElementById("block-modal-overlay").classList.add("hidden")
+    editingIdx = null
   }
 
   document.getElementById("block-modal-close").addEventListener("click", closeBlockModal)
@@ -312,18 +414,46 @@ const Routine = (() => {
   document.getElementById("block-modal-confirm").addEventListener("click", () => {
     const name = document.getElementById("block-name").value.trim()
     const share = document.getElementById("block-share").value.trim()
-    const totalSecs = parseDuration(document.getElementById("block-duration").value)
+    const totalSecs = readDurationInputs()
     if (!name) { document.getElementById("block-name").focus(); return }
-    if (totalSecs <= 0) { document.getElementById("block-duration").focus(); UI.toast("set a duration greater than 0"); return }
-    Routine.addBlock({ name, totalSecs, shareCode: share })
+    if (totalSecs <= 0) { document.getElementById("block-min").focus(); UI.toast("set a duration greater than 0"); return }
+    if (editingIdx !== null) {
+      Routine.updateBlock(editingIdx, { name, totalSecs, shareCode: share })
+      UI.toast(`"${name}" updated`)
+    } else {
+      Routine.addBlock({ name, totalSecs, shareCode: share })
+      UI.toast(`"${name}" added to queue`)
+    }
     closeBlockModal()
-    UI.toast(`"${name}" added to queue`)
   })
 
-  ;["block-name", "block-duration", "block-share"].forEach(id => {
+  ;["block-name", "block-min", "block-sec", "block-share"].forEach(id => {
     document.getElementById(id).addEventListener("keydown", e => {
       if (e.key === "Enter") document.getElementById("block-modal-confirm").click()
     })
+  })
+
+  // sound toggle
+  const soundBtn = document.getElementById("btn-sound-toggle")
+  if (soundBtn) {
+    const syncSoundIcon = () => soundBtn.classList.toggle("muted", !Routine.soundOn)
+    syncSoundIcon()
+    soundBtn.addEventListener("click", () => { Routine.toggleSound(); syncSoundIcon() })
+  }
+
+  // keyboard shortcuts — only while the routine view is active and not typing in a field
+  document.addEventListener("keydown", e => {
+    const routineView = document.getElementById("view-routine")
+    const isRoutineActive = routineView && routineView.classList.contains("active")
+    if (!isRoutineActive) return
+    const tag = document.activeElement.tagName
+    if (tag === "INPUT" || tag === "TEXTAREA") return
+    if (!document.getElementById("block-modal-overlay").classList.contains("hidden")) return
+    if (!document.getElementById("load-routine-modal-overlay").classList.contains("hidden")) return
+
+    if (e.code === "Space") { e.preventDefault(); Routine.running ? Routine.pause() : Routine.play() }
+    else if (e.code === "ArrowRight") { e.preventDefault(); Routine.next() }
+    else if (e.code === "ArrowLeft") { e.preventDefault(); Routine.prev() }
   })
 
   // save routine
