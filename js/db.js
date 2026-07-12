@@ -25,8 +25,16 @@ const DB = (() => {
 
   // playlists
   async function getAllPlaylists() {
-    const { data, error } = await client.from("playlists").select("id,name,folder_id,game_tag,notes,share_code,created_at").order("name")
-    if (error) throw error; return data
+    const { data, error } = await client.from("playlists").select("id,name,folder_id,game_tag,notes,share_code,created_at,pinned").order("name")
+    if (!error) return data
+    // "pinned" column may not exist yet if the migration hasn't been run — fall back gracefully
+    const fallback = await client.from("playlists").select("id,name,folder_id,game_tag,notes,share_code,created_at").order("name")
+    if (fallback.error) throw fallback.error
+    return fallback.data
+  }
+  async function togglePlaylistPin(id, pinned) {
+    const { error } = await client.from("playlists").update({ pinned }).eq("id", id)
+    if (error) throw error
   }
   async function uploadPlaylist({ name, folderId, gameTag, notes, shareCode, fileData }) {
     const { data, error } = await client.from("playlists").insert({ name, folder_id: folderId||null, game_tag: gameTag||null, notes: notes||null, share_code: shareCode||null, file_data: fileData }).select().single()
@@ -63,6 +71,10 @@ const DB = (() => {
   async function updateScenario(id, { name, shareCode, gameTag, notes }) {
     const { data, error } = await client.from("scenarios").update({ name, share_code: shareCode||null, game_tag: gameTag||null, notes: notes||null }).eq("id", id).select().single()
     if (error) throw error; return data
+  }
+  async function toggleScenarioPin(id, pinned) {
+    const { error } = await client.from("scenarios").update({ pinned }).eq("id", id)
+    if (error) throw error
   }
   async function deleteScenario(id) {
     const { error } = await client.from("scenarios").delete().eq("id", id)
@@ -118,5 +130,5 @@ const DB = (() => {
     const { error } = await client.from("aimbeast_playlists").delete().eq("id", id)
     if (error) throw error
   }
-  return { init, ready, ping, getFolders, createFolder, deleteFolder, getAllPlaylists, uploadPlaylist, updatePlaylist, getPlaylistFile, deletePlaylist, getAllPlaylistsWithFiles, getAllScenarios, insertScenario, updateScenario, deleteScenario, getSens, upsertSens, addSensType, deleteSensType, getAimFolders, createAimFolder, deleteAimFolder, getAllAimPlaylists, uploadAimPlaylist, updateAimPlaylist, deleteAimPlaylist }
+  return { init, ready, ping, getFolders, createFolder, deleteFolder, getAllPlaylists, togglePlaylistPin, uploadPlaylist, updatePlaylist, getPlaylistFile, deletePlaylist, getAllPlaylistsWithFiles, getAllScenarios, insertScenario, updateScenario, toggleScenarioPin, deleteScenario, getSens, upsertSens, addSensType, deleteSensType, getAimFolders, createAimFolder, deleteAimFolder, getAllAimPlaylists, uploadAimPlaylist, updateAimPlaylist, deleteAimPlaylist }
 })()
