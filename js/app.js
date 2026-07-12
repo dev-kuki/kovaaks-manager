@@ -72,6 +72,14 @@
   })
 
   document.getElementById("folders-container").addEventListener("click", async e => {
+    const pinBtn = e.target.closest("[data-pin-pl]")
+    if (pinBtn) {
+      const id = pinBtn.dataset.pinPl
+      const wasPinned = pinBtn.dataset.pinned === "1"
+      try { await DB.togglePlaylistPin(id, !wasPinned); await refresh() }
+      catch (err) { UI.toast("couldn't pin — did you run the pinned column migration? " + err.message) }
+      return
+    }
     if (e.target.closest(".folder-del")) {
       const id = e.target.closest("[data-folder-id]").dataset.folderId
       const f = folders.find(x => x.id === id)
@@ -169,6 +177,14 @@
   })
 
   document.getElementById("scenarios-container").addEventListener("click", async e => {
+    const pinBtn = e.target.closest("[data-pin-sc]")
+    if (pinBtn) {
+      const id = pinBtn.dataset.pinSc
+      const wasPinned = pinBtn.dataset.pinned === "1"
+      try { await DB.toggleScenarioPin(id, !wasPinned); await refresh() }
+      catch (err) { UI.toast("couldn't pin — did you run the pinned column migration? " + err.message) }
+      return
+    }
     const editBtn = e.target.closest(".btn-edit[data-scenario-id]")
     if (editBtn) {
       const sc = scenarios.find(s => s.id === editBtn.dataset.scenarioId)
