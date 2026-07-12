@@ -219,8 +219,13 @@
                 <button class="timer-btn" id="btn-timer-next" title="Next">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19"/></svg>
                 </button>
+                <button class="timer-btn timer-btn-sound" id="btn-sound-toggle" title="Toggle sound cues">
+                  <svg class="icon-sound-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/></svg>
+                  <svg class="icon-sound-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
+                </button>
               </div>
               <div class="timer-up-next" id="timer-up-next"></div>
+              <div class="timer-kbd-hint"><kbd>space</kbd> play/pause <kbd>&#8592;</kbd><kbd>&#8594;</kbd> switch block</div>
             </div>
 
             <div class="quick-add-wrap" id="quick-add-wrap" style="display:none">
@@ -244,6 +249,34 @@
             </button>
           </div>
         </div>
+        <div class="sens-calc-card">
+          <div class="sens-calc-hdr">Quick calculator</div>
+          <div class="sens-calc-row">
+            <div class="field-sm">
+              <label>Mouse DPI</label>
+              <input type="number" id="calc-dpi" class="mono" min="1" placeholder="800" />
+            </div>
+            <div class="field-sm">
+              <label>In-game sensitivity</label>
+              <input type="number" id="calc-ingame-sens" class="mono" step="0.001" min="0" placeholder="2.0" />
+            </div>
+          </div>
+          <div class="sens-calc-results">
+            <div class="sens-calc-result">
+              <span class="sens-calc-result-label">eDPI</span>
+              <span class="sens-calc-result-val" id="calc-edpi">—</span>
+            </div>
+            <div class="sens-calc-result">
+              <span class="sens-calc-result-label">cm/360&deg; <span class="optional">CS2 / Source, m_yaw 0.022</span></span>
+              <span class="sens-calc-result-val" id="calc-cm360">—</span>
+            </div>
+          </div>
+          <div class="sens-calc-apply">
+            <select id="calc-apply-type" class="mono"><option value="">apply cm/360 to tracked type…</option></select>
+            <button class="btn-ghost btn-sm" id="calc-apply-btn">Apply</button>
+          </div>
+        </div>
+
         <div class="sens-grid" id="sens-grid">
           <div class="empty-state"><div class="empty-glyph">⊕</div><p>Loading…</p></div>
         </div>
@@ -514,11 +547,11 @@ create table if not exists aimbeast_playlists (
   </div>
 
 
-  <!-- add block modal -->
+  <!-- add/edit block modal -->
   <div id="block-modal-overlay" class="modal-backdrop hidden">
     <div class="modal">
       <div class="modal-hdr">
-        <span>Add block</span>
+        <span id="block-modal-title">Add block</span>
         <button class="modal-x" id="block-modal-close">&#x2715;</button>
       </div>
       <div class="field">
@@ -526,8 +559,25 @@ create table if not exists aimbeast_playlists (
         <input type="text" id="block-name" placeholder="e.g. Tile Frenzy" autocomplete="off" />
       </div>
       <div class="field">
-        <label for="block-duration">Duration <span class="optional">mm:ss</span></label>
-        <input type="text" id="block-duration" placeholder="5:00" class="mono" autocomplete="off" />
+        <label>Duration</label>
+        <div class="time-input-row">
+          <div class="time-input-group">
+            <input type="number" id="block-min" class="mono time-input" min="0" max="999" value="5" autocomplete="off" />
+            <span class="time-input-unit">min</span>
+          </div>
+          <div class="time-input-group">
+            <input type="number" id="block-sec" class="mono time-input" min="0" max="59" value="0" autocomplete="off" />
+            <span class="time-input-unit">sec</span>
+          </div>
+        </div>
+        <div class="preset-chips" id="block-duration-presets">
+          <button type="button" class="chip" data-secs="30">30s</button>
+          <button type="button" class="chip" data-secs="60">1m</button>
+          <button type="button" class="chip" data-secs="120">2m</button>
+          <button type="button" class="chip" data-secs="180">3m</button>
+          <button type="button" class="chip" data-secs="300">5m</button>
+          <button type="button" class="chip" data-secs="600">10m</button>
+        </div>
       </div>
       <div class="field">
         <label for="block-share">Share code <span class="optional">optional — to launch in KovaaK's</span></label>
