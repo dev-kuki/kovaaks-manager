@@ -7,8 +7,62 @@ async function initSens() {
   try {
     const rows = await DB.getSens()
     renderSens(rows)
+    populateCalcApplySelect(rows)
   } catch (err) { UI.toast("sens load failed: " + err.message) }
 }
+
+// ── quick calculator (eDPI + CS2/Source cm/360) ──
+
+function populateCalcApplySelect(rows) {
+  const sel = document.getElementById("calc-apply-type"); if (!sel) return
+  sel.innerHTML = '<option value="">apply cm/360 to tracked type…</option>'
+  rows.forEach(r => {
+    const o = document.createElement("option"); o.value = r.scenario_type; o.textContent = r.scenario_type
+    sel.appendChild(o)
+  })
+}
+
+function runSensCalc() {
+  const dpiEl = document.getElementById("calc-dpi"); if (!dpiEl) return
+  const dpi = parseFloat(dpiEl.value)
+  const sens = parseFloat(document.getElementById("calc-ingame-sens").value)
+  const edpiEl = document.getElementById("calc-edpi")
+  const cm360El = document.getElementById("calc-cm360")
+
+  if (!dpi || !sens || dpi <= 0 || sens <= 0) {
+    edpiEl.textContent = "—"; cm360El.textContent = "—"
+    return
+  }
+  const edpi = dpi * sens
+  const cm360 = (360 / (dpi * sens * 0.022)) * 2.54
+  edpiEl.textContent = Math.round(edpi)
+  cm360El.textContent = cm360.toFixed(2)
+  try { localStorage.setItem("kv-mouse-dpi", String(dpi)) } catch {}
+}
+
+function initSensCalc() {
+  const dpiEl = document.getElementById("calc-dpi"); if (!dpiEl) return
+  try {
+    const savedDpi = localStorage.getItem("kv-mouse-dpi")
+    if (savedDpi) dpiEl.value = savedDpi
+  } catch {}
+  ;["calc-dpi", "calc-ingame-sens"].forEach(id => {
+    document.getElementById(id).addEventListener("input", runSensCalc)
+  })
+  document.getElementById("calc-apply-btn").addEventListener("click", async () => {
+    const type = document.getElementById("calc-apply-type").value
+    const cm360 = document.getElementById("calc-cm360").textContent
+    if (!type) { UI.toast("pick a tracked type first"); return }
+    if (cm360 === "—") { UI.toast("enter DPI and sensitivity first"); return }
+    try {
+      await DB.upsertSens(type, parseFloat(cm360))
+      UI.toast(`applied ${cm360} cm/360 to "${type}"`)
+      await initSens()
+    } catch (err) { UI.toast("error: " + err.message) }
+  })
+  runSensCalc()
+}
+initSensCalc()
 
 function renderSens(rows) {
   const grid = document.getElementById("sens-grid")
