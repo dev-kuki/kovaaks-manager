@@ -71,6 +71,23 @@
     })
   })
 
+  // drag & drop reordering — folders among themselves, playlists within/between folders
+  UI.wireFolderDragDrop(document.getElementById("folders-container"), {
+    onReorderFolders: async ids => {
+      try { await DB.reorderFolders(ids); await refresh() }
+      catch (err) { UI.toast("couldn't reorder — did you run the position column migration? " + err.message) }
+    },
+    onDropItem: async (id, targetFolderId, ids) => {
+      try {
+        const folderId = targetFolderId === "none" ? null : targetFolderId
+        const pl = playlists.find(p => p.id === id)
+        if (pl && pl.folder_id !== folderId) await DB.movePlaylistToFolder(id, folderId)
+        await DB.reorderPlaylists(ids)
+        await refresh()
+      } catch (err) { UI.toast("couldn't move — did you run the position column migration? " + err.message) }
+    },
+  })
+
   document.getElementById("folders-container").addEventListener("click", async e => {
     const pinBtn = e.target.closest("[data-pin-pl]")
     if (pinBtn) {
@@ -78,6 +95,15 @@
       const wasPinned = pinBtn.dataset.pinned === "1"
       try { await DB.togglePlaylistPin(id, !wasPinned); await refresh() }
       catch (err) { UI.toast("couldn't pin — did you run the pinned column migration? " + err.message) }
+      return
+    }
+    const renameBtn = e.target.closest("[data-folder-rename]")
+    if (renameBtn) {
+      const id = renameBtn.dataset.folderRename
+      UI.openFolderModal(async name => {
+        try { await DB.renameFolder(id, name); await refresh(); UI.toast(`renamed to "${name}"`) }
+        catch (err) { UI.toast("error: " + err.message) }
+      }, { name: renameBtn.dataset.folderName })
       return
     }
     if (e.target.closest(".folder-del")) {
@@ -174,6 +200,11 @@
         await refresh(); UI.toast(`added ${items.length} scenario${items.length !== 1 ? "s" : ""}`)
       } catch (err) { UI.toast("error: " + err.message) }
     })
+  })
+
+  UI.wireGridDragDrop(document.getElementById("scenarios-container"), ".scenario-card", "scenarioId", async ids => {
+    try { await DB.reorderScenarios(ids); await refresh() }
+    catch (err) { UI.toast("couldn't reorder — did you run the position column migration? " + err.message) }
   })
 
   document.getElementById("scenarios-container").addEventListener("click", async e => {
