@@ -1,21 +1,696 @@
-# kovaaks-manager
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>KovaaK's Manager</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div id="app">
 
-Self-hosted KovaaK's / Aimbeast playlist manager backed by Supabase. Organize playlists and scenarios into folders, pin favorites, build timed routines, and track sensitivity.
+    <header id="topnav">
+      <div class="topnav-row">
+        <div class="logo">
+          <div class="logo-icon">K</div>
+          <div class="logo-text">
+            <span class="logo-main">KovaaK's</span>
+            <span class="logo-sub">manager</span>
+          </div>
+        </div>
 
-## Setup
+        <nav class="nav">
+          <button class="nav-btn active" data-view="playlists">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+            <span>Playlists</span>
+          </button>
+          <button class="nav-btn" data-view="scenarios">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><polygon points="10 8 16 12 10 16 10 8"/></svg>
+            <span>Scenarios</span>
+          </button>
+          <button class="nav-btn" data-view="upload">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            <span>Upload</span>
+          </button>
+          <button class="nav-btn" data-view="transfer">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            <span>Export / Import</span>
+          </button>
+          <button class="nav-btn" data-view="routine">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 15"/></svg>
+            <span>Routine</span>
+          </button>
+          <button class="nav-btn" data-view="sens">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+            <span>Sensitivity</span>
+          </button>
+          <button class="nav-btn" data-view="aimbeast">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="8"/><line x1="12" y1="2" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="22"/><line x1="2" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="22" y2="12"/></svg>
+            <span>Aimbeast</span>
+          </button>
+          <button class="nav-btn" data-view="settings">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93l-1.41 1.41M4.93 4.93l1.41 1.41M12 2v2M12 20v2M20 12h2M2 12h2M19.07 19.07l-1.41-1.41M4.93 19.07l1.41-1.41"/></svg>
+            <span>Settings</span>
+          </button>
+        </nav>
 
-1. Create a free [Supabase](https://supabase.com) project.
-2. Open **SQL Editor** and run the table setup from the Settings tab in the app (it's all there, copy-paste ready). If you already have the tables from an older version, run the `alter table ... add column if not exists ...` block underneath it too — it's safe to run more than once and won't touch your data.
-3. Paste your Project URL and anon key into Settings and hit Save & Connect.
+        <div class="conn-pill" id="conn-pill">
+          <span class="conn-dot" id="conn-dot"></span>
+          <span id="conn-label">not connected</span>
+        </div>
+      </div>
+    </header>
 
-## Features
+    <main id="main">
 
-- Folders for playlists and Aimbeast playlists, with drag-and-drop reordering — drag a folder to move it up/down, drag a playlist onto a different folder to move it there, drag within a folder to reorder
-- Pin any playlist/scenario as a favorite (gold star) — pinning is just a visual flag now, it doesn't force a sort order, so it won't fight with your manual ordering
-- Rename folders inline
-- Scenario library with bulk add, drag-to-reorder cards
-- Routine builder with a countdown timer and sound cues
-- Sensitivity tracker + eDPI / cm-per-360 calculator
-- Export/import your whole library as a `.zip`
+      <!-- playlists -->
+      <section id="view-playlists" class="view active">
+        <div class="topbar">
+          <div class="topbar-left">
+            <h1>Playlists</h1>
+            <span class="count-badge" id="playlist-count">0</span>
+          </div>
+          <div class="topbar-right">
+            <div class="search-box">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input type="text" id="search-input" placeholder="search…" />
+            </div>
+            <button class="btn-primary" id="btn-new-folder">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              New Folder
+            </button>
+          </div>
+        </div>
+        <div id="folders-container">
+          <div class="empty-state" id="empty-playlists">
+            <div class="empty-glyph">⬡</div>
+            <p>No playlists yet</p>
+            <span>Upload a playlist and assign it to a folder</span>
+          </div>
+        </div>
+      </section>
 
-Everything lives in your own Supabase project — this is a static site with no backend of its own.
+      <!-- scenarios -->
+      <section id="view-scenarios" class="view">
+        <div class="topbar">
+          <div class="topbar-left">
+            <h1>Scenarios</h1>
+            <span class="count-badge" id="scenario-count">0</span>
+          </div>
+          <div class="topbar-right">
+            <div class="search-box">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input type="text" id="scenario-search" placeholder="search…" />
+            </div>
+            <button class="btn-primary" id="btn-add-scenario">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Add Scenarios
+            </button>
+          </div>
+        </div>
+        <div id="scenarios-container">
+          <div class="empty-state" id="empty-scenarios">
+            <div class="empty-glyph">◎</div>
+            <p>No scenarios yet</p>
+            <span>Add scenarios with their share codes to launch them directly</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- upload -->
+      <section id="view-upload" class="view">
+        <div class="topbar">
+          <div class="topbar-left"><h1>Upload Playlist</h1></div>
+        </div>
+        <div class="form-card">
+          <div class="field">
+            <label for="pl-name">Name</label>
+            <input type="text" id="pl-name" placeholder="e.g. Voltaic Entry — Clicking" />
+          </div>
+          <div class="field-row">
+            <div class="field">
+              <label for="pl-folder">Folder</label>
+              <div class="select-wrap">
+                <select id="pl-folder"><option value="">— no folder —</option></select>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+              </div>
+            </div>
+            <div class="field">
+              <label for="pl-game">Game tag <span class="optional">optional</span></label>
+              <input type="text" id="pl-game" placeholder="CS2, Valorant…" />
+            </div>
+          </div>
+          <div class="field">
+            <label for="pl-share">Share code <span class="optional">for open in KovaaK's</span></label>
+            <input type="text" id="pl-share" placeholder="KovaaKsXxxxxXxxxXxxx" class="mono" />
+          </div>
+          <div class="field">
+            <label>Playlist file <span class="optional">.json</span></label>
+            <div class="file-drop" id="file-drop">
+              <input type="file" id="pl-file" accept=".json" />
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0018 9h-1.26A8 8 0 103 16.3"/></svg>
+              <span id="file-label">Drop .json or click to browse</span>
+            </div>
+          </div>
+          <div class="field">
+            <label for="pl-notes">Notes <span class="optional">optional</span></label>
+            <textarea id="pl-notes" rows="3" placeholder="difficulty, source, what it trains…"></textarea>
+          </div>
+          <div class="form-footer">
+            <button class="btn-primary large" id="btn-upload">Upload Playlist</button>
+            <span id="upload-feedback"></span>
+          </div>
+        </div>
+      </section>
+
+      <!-- routine -->
+      <section id="view-routine" class="view">
+        <div class="topbar">
+          <div class="topbar-left">
+            <h1>Routine</h1>
+          </div>
+          <div class="topbar-right">
+            <button class="btn-ghost" id="btn-save-routine">Save routine</button>
+            <button class="btn-ghost" id="btn-load-routine">Load routine</button>
+            <button class="btn-primary" id="btn-add-block">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Add block
+            </button>
+          </div>
+        </div>
+
+        <div class="routine-layout">
+          <div class="routine-queue-wrap">
+            <div class="routine-queue-header">
+              <span class="routine-section-label">Queue</span>
+              <button class="btn-ghost btn-sm" id="btn-clear-queue">Clear</button>
+            </div>
+            <div id="routine-queue">
+              <div class="empty-state" id="empty-queue">
+                <div class="empty-glyph">&#9201;</div>
+                <p>Queue is empty</p>
+                <span>Add blocks to build your session</span>
+              </div>
+            </div>
+            <div class="queue-total" id="queue-total" style="display:none">
+              Total: <span id="queue-total-time">0:00</span>
+            </div>
+          </div>
+
+          <div class="routine-timer-wrap">
+            <div class="routine-section-label">Now playing</div>
+            <div class="timer-card" id="timer-card">
+              <div class="timer-block-name" id="timer-block-name">—</div>
+              <div class="timer-display" id="timer-display">00:00</div>
+              <div class="timer-progress-wrap">
+                <div class="timer-progress-bar" id="timer-progress-bar"></div>
+              </div>
+              <div class="timer-controls">
+                <button class="timer-btn" id="btn-timer-prev" title="Previous">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="19 20 9 12 19 4 19 20"/><line x1="5" y1="19" x2="5" y2="5"/></svg>
+                </button>
+                <button class="timer-btn timer-btn-main" id="btn-timer-play">
+                  <svg id="icon-play" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                  <svg id="icon-pause" viewBox="0 0 24 24" fill="currentColor" style="display:none"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+                </button>
+                <button class="timer-btn" id="btn-timer-next" title="Next">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19"/></svg>
+                </button>
+                <button class="timer-btn timer-btn-sound" id="btn-sound-toggle" title="Toggle sound cues">
+                  <svg class="icon-sound-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/></svg>
+                  <svg class="icon-sound-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
+                </button>
+              </div>
+              <div class="timer-up-next" id="timer-up-next"></div>
+              <div class="timer-kbd-hint"><kbd>space</kbd> play/pause <kbd>&#8592;</kbd><kbd>&#8594;</kbd> switch block</div>
+            </div>
+
+            <div class="quick-add-wrap" id="quick-add-wrap" style="display:none">
+              <div class="routine-section-label" style="margin-bottom:10px">From library</div>
+              <div id="quick-add-list"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- sensitivity -->
+      <section id="view-sens" class="view">
+        <div class="topbar">
+          <div class="topbar-left">
+            <h1>Sensitivity</h1>
+          </div>
+          <div class="topbar-right">
+            <button class="btn-primary" id="btn-add-sens-type">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Add type
+            </button>
+          </div>
+        </div>
+        <div class="sens-calc-card">
+          <div class="sens-calc-hdr">Quick calculator</div>
+          <div class="sens-calc-row">
+            <div class="field-sm">
+              <label>Mouse DPI</label>
+              <input type="number" id="calc-dpi" class="mono" min="1" placeholder="800" />
+            </div>
+            <div class="field-sm">
+              <label>In-game sensitivity</label>
+              <input type="number" id="calc-ingame-sens" class="mono" step="0.001" min="0" placeholder="2.0" />
+            </div>
+          </div>
+          <div class="sens-calc-results">
+            <div class="sens-calc-result">
+              <span class="sens-calc-result-label">eDPI</span>
+              <span class="sens-calc-result-val" id="calc-edpi">—</span>
+            </div>
+            <div class="sens-calc-result">
+              <span class="sens-calc-result-label">cm/360&deg; <span class="optional">CS2 / Source, m_yaw 0.022</span></span>
+              <span class="sens-calc-result-val" id="calc-cm360">—</span>
+            </div>
+          </div>
+          <div class="sens-calc-apply">
+            <select id="calc-apply-type" class="mono"><option value="">apply cm/360 to tracked type…</option></select>
+            <button class="btn-ghost btn-sm" id="calc-apply-btn">Apply</button>
+          </div>
+        </div>
+
+        <div class="sens-grid" id="sens-grid">
+          <div class="empty-state"><div class="empty-glyph">⊕</div><p>Loading…</p></div>
+        </div>
+      </section>
+
+      <!-- aimbeast -->
+      <section id="view-aimbeast" class="view">
+        <div class="topbar">
+          <div class="topbar-left">
+            <h1>Aimbeast</h1>
+            <span class="count-badge" id="aim-count">0</span>
+          </div>
+          <div class="topbar-right">
+            <div class="search-box">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input type="text" id="aim-search" placeholder="search…" />
+            </div>
+            <button class="btn-primary" id="btn-new-aim-folder">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              New folder
+            </button>
+            <button class="btn-primary" id="btn-add-aim-playlist">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Add playlist
+            </button>
+          </div>
+        </div>
+        <div id="aim-folders-container">
+          <div class="empty-state" id="empty-aim">
+            <div class="empty-glyph">⬡</div>
+            <p>No Aimbeast playlists yet</p>
+            <span>Add playlists with their workshop URL or code</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- export / import -->
+      <section id="view-transfer" class="view">
+        <div class="topbar">
+          <div class="topbar-left"><h1>Export / Import</h1></div>
+        </div>
+        <div class="transfer-grid">
+          <div class="transfer-card">
+            <div class="transfer-icon export-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            </div>
+            <h2>Export</h2>
+            <p>Download all your playlists and folder structure as a <code>.zip</code>. Includes the JSON files and a manifest so everything can be restored exactly.</p>
+            <button class="btn-primary large" id="btn-export">Export library</button>
+            <span id="export-feedback"></span>
+          </div>
+          <div class="transfer-card">
+            <div class="transfer-icon import-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            </div>
+            <h2>Import</h2>
+            <p>Drop a previously exported <code>.zip</code> to restore your library. Folders and playlists will be recreated in Supabase.</p>
+            <div class="file-drop" id="import-drop">
+              <input type="file" id="import-file" accept=".zip" />
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0018 9h-1.26A8 8 0 103 16.3"/></svg>
+              <span id="import-file-label">Drop .zip or click to browse</span>
+            </div>
+            <button class="btn-primary large" id="btn-import" disabled>Import library</button>
+            <span id="import-feedback"></span>
+          </div>
+        </div>
+      </section>
+
+      <!-- settings -->
+      <section id="view-settings" class="view">
+        <div class="topbar">
+          <div class="topbar-left"><h1>Settings</h1></div>
+        </div>
+        <div class="form-card">
+          <div class="info-banner">
+            Connect your Supabase project. Credentials are stored in your browser only — never sent anywhere else.
+          </div>
+          <details class="guide">
+            <summary>Supabase setup guide</summary>
+            <div class="guide-body">
+              <ol>
+                <li>Go to <a href="https://supabase.com" target="_blank">supabase.com</a> and create a free account</li>
+                <li>Create a new project, pick a name and region</li>
+                <li>Go to <strong>Project Settings → API</strong> and copy your Project URL and anon key</li>
+                <li>Open <strong>SQL Editor</strong> and run the table setup queries</li>
+                <li>Paste your URL and key below and hit Save</li>
+              </ol>
+              <pre><code>create table if not exists folders (
+  id uuid default gen_random_uuid() primary key,
+  name text not null,
+  position integer,
+  created_at timestamptz default now()
+);
+
+create table if not exists playlists (
+  id uuid default gen_random_uuid() primary key,
+  name text not null,
+  folder_id uuid references folders(id) on delete set null,
+  game_tag text,
+  notes text,
+  file_data jsonb,
+  share_code text,
+  pinned boolean default false,
+  position integer,
+  created_at timestamptz default now()
+);
+
+create table if not exists scenarios (
+  id uuid default gen_random_uuid() primary key,
+  name text not null,
+  share_code text,
+  game_tag text,
+  notes text,
+  pinned boolean default false,
+  position integer,
+  created_at timestamptz default now()
+);
+
+create table if not exists sens (
+  id uuid default gen_random_uuid() primary key,
+  scenario_type text not null unique,
+  cm360 numeric,
+  updated_at timestamptz default now()
+);
+
+create table if not exists aimbeast_folders (
+  id uuid default gen_random_uuid() primary key,
+  name text not null,
+  position integer,
+  created_at timestamptz default now()
+);
+
+create table if not exists aimbeast_playlists (
+  id uuid default gen_random_uuid() primary key,
+  name text not null,
+  folder_id uuid references aimbeast_folders(id) on delete set null,
+  game_tag text,
+  notes text,
+  workshop_url text,
+  playlist_code text,
+  pinned boolean default false,
+  position integer,
+  created_at timestamptz default now()
+);</code></pre>
+              <p style="margin-top:2px">Already have these tables from an older version? Run this too — it's safe to run more than once and won't touch existing data:</p>
+              <pre><code>alter table folders add column if not exists position integer;
+alter table playlists add column if not exists pinned boolean default false;
+alter table playlists add column if not exists position integer;
+alter table scenarios add column if not exists pinned boolean default false;
+alter table scenarios add column if not exists position integer;
+alter table aimbeast_folders add column if not exists position integer;
+alter table aimbeast_playlists add column if not exists pinned boolean default false;
+alter table aimbeast_playlists add column if not exists position integer;</code></pre>
+            </div>
+          </details>
+          <div class="field">
+            <label for="sb-url">Project URL</label>
+            <input type="text" id="sb-url" placeholder="https://xxxxxxxxxx.supabase.co" class="mono" />
+          </div>
+          <div class="field">
+            <label for="sb-key">Anon key</label>
+            <input type="text" id="sb-key" placeholder="eyJhbGci…" class="mono" />
+          </div>
+          <div class="form-footer">
+            <button class="btn-primary large" id="btn-save-settings">Save & Connect</button>
+            <span id="settings-feedback"></span>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- folder modal -->
+  <div id="modal-overlay" class="modal-backdrop hidden">
+    <div class="modal">
+      <div class="modal-hdr">
+        <span id="modal-title">New folder</span>
+        <button class="modal-x" id="modal-close">✕</button>
+      </div>
+      <div class="field">
+        <label for="folder-name-input">Folder name</label>
+        <input type="text" id="folder-name-input" placeholder="e.g. CS2 Routines" />
+      </div>
+      <div class="modal-actions">
+        <button class="btn-ghost" id="modal-cancel">Cancel</button>
+        <button class="btn-primary" id="modal-confirm">Create</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- edit playlist modal -->
+  <div id="edit-modal-overlay" class="modal-backdrop hidden">
+    <div class="modal modal-wide">
+      <div class="modal-hdr">
+        <span>Edit playlist</span>
+        <button class="modal-x" id="edit-modal-close">✕</button>
+      </div>
+      <div class="field">
+        <label for="edit-pl-name">Name</label>
+        <input type="text" id="edit-pl-name" />
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="edit-pl-folder">Folder</label>
+          <div class="select-wrap">
+            <select id="edit-pl-folder"></select>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+        </div>
+        <div class="field">
+          <label for="edit-pl-game">Game tag</label>
+          <input type="text" id="edit-pl-game" placeholder="CS2, Valorant…" />
+        </div>
+      </div>
+      <div class="field">
+        <label for="edit-pl-share">Share code</label>
+        <input type="text" id="edit-pl-share" placeholder="KovaaKsXxxxxXxxxXxxx" class="mono" />
+      </div>
+      <div class="field">
+        <label for="edit-pl-notes">Notes</label>
+        <textarea id="edit-pl-notes" rows="3"></textarea>
+      </div>
+      <div class="field">
+        <label>Replace file <span class="optional">leave empty to keep current</span></label>
+        <div class="file-drop file-drop-sm">
+          <input type="file" id="edit-pl-file" accept=".json" />
+          <span id="edit-file-label">Leave empty to keep current file</span>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-ghost" id="edit-modal-cancel">Cancel</button>
+        <button class="btn-primary" id="edit-modal-save">Save changes</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- add scenarios modal -->
+  <div id="scenario-modal-overlay" class="modal-backdrop hidden">
+    <div class="modal modal-wide">
+      <div class="modal-hdr">
+        <span>Add Scenarios</span>
+        <button class="modal-x" id="scenario-modal-close">✕</button>
+      </div>
+      <p class="modal-hint">Paste one scenario per line in the format: <code>Name | ShareCode | GameTag</code><br/>Game tag is optional. Share code is optional but needed to launch.</p>
+      <div class="field">
+        <label for="scenario-bulk-input">Scenarios</label>
+        <textarea id="scenario-bulk-input" rows="10" placeholder="Tile Frenzy | KovaaKsABCDEFGH | CS2&#10;Smoothbot | KovaaKsXYZ123&#10;Close Fast Strafes"></textarea>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-ghost" id="scenario-modal-cancel">Cancel</button>
+        <button class="btn-primary" id="scenario-modal-confirm">Add all</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- edit scenario modal -->
+  <div id="edit-scenario-modal-overlay" class="modal-backdrop hidden">
+    <div class="modal">
+      <div class="modal-hdr">
+        <span>Edit scenario</span>
+        <button class="modal-x" id="edit-scenario-modal-close">✕</button>
+      </div>
+      <div class="field">
+        <label for="edit-sc-name">Name</label>
+        <input type="text" id="edit-sc-name" />
+      </div>
+      <div class="field">
+        <label for="edit-sc-share">Share code</label>
+        <input type="text" id="edit-sc-share" class="mono" placeholder="KovaaKsXxxxxXxxxXxxx" />
+      </div>
+      <div class="field">
+        <label for="edit-sc-game">Game tag</label>
+        <input type="text" id="edit-sc-game" placeholder="CS2, Valorant…" />
+      </div>
+      <div class="field">
+        <label for="edit-sc-notes">Notes</label>
+        <textarea id="edit-sc-notes" rows="3"></textarea>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-ghost" id="edit-scenario-modal-cancel">Cancel</button>
+        <button class="btn-primary" id="edit-scenario-modal-save">Save</button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- add/edit block modal -->
+  <div id="block-modal-overlay" class="modal-backdrop hidden">
+    <div class="modal">
+      <div class="modal-hdr">
+        <span id="block-modal-title">Add block</span>
+        <button class="modal-x" id="block-modal-close">&#x2715;</button>
+      </div>
+      <div class="field">
+        <label for="block-name">Name</label>
+        <input type="text" id="block-name" placeholder="e.g. Tile Frenzy" autocomplete="off" />
+      </div>
+      <div class="field">
+        <label>Duration</label>
+        <div class="time-input-row">
+          <div class="time-input-group">
+            <input type="number" id="block-min" class="mono time-input" min="0" max="999" value="5" autocomplete="off" />
+            <span class="time-input-unit">min</span>
+          </div>
+          <div class="time-input-group">
+            <input type="number" id="block-sec" class="mono time-input" min="0" max="59" value="0" autocomplete="off" />
+            <span class="time-input-unit">sec</span>
+          </div>
+        </div>
+        <div class="preset-chips" id="block-duration-presets">
+          <button type="button" class="chip" data-secs="30">30s</button>
+          <button type="button" class="chip" data-secs="60">1m</button>
+          <button type="button" class="chip" data-secs="120">2m</button>
+          <button type="button" class="chip" data-secs="180">3m</button>
+          <button type="button" class="chip" data-secs="300">5m</button>
+          <button type="button" class="chip" data-secs="600">10m</button>
+        </div>
+      </div>
+      <div class="field">
+        <label for="block-share">Share code <span class="optional">optional — to launch in KovaaK's</span></label>
+        <input type="text" id="block-share" class="mono" placeholder="KovaaKsXxxxxXxxxXxxx" autocomplete="off" />
+      </div>
+      <div class="modal-actions">
+        <button class="btn-ghost" id="block-modal-cancel">Cancel</button>
+        <button class="btn-primary" id="block-modal-confirm">Add to queue</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- load routine modal -->
+  <div id="load-routine-modal-overlay" class="modal-backdrop hidden">
+    <div class="modal">
+      <div class="modal-hdr">
+        <span>Load routine</span>
+        <button class="modal-x" id="load-routine-modal-close">&#x2715;</button>
+      </div>
+      <div id="saved-routines-list"></div>
+      <div class="modal-actions">
+        <button class="btn-ghost" id="load-routine-modal-cancel">Close</button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- add sens type modal -->
+  <div id="sens-type-modal-overlay" class="modal-backdrop hidden">
+    <div class="modal">
+      <div class="modal-hdr">
+        <span>Add scenario type</span>
+        <button class="modal-x" id="sens-type-modal-close">&#x2715;</button>
+      </div>
+      <div class="field">
+        <label for="sens-type-input">Type name</label>
+        <input type="text" id="sens-type-input" placeholder="e.g. Micro Flick" autocomplete="off" />
+      </div>
+      <div class="modal-actions">
+        <button class="btn-ghost" id="sens-type-modal-cancel">Cancel</button>
+        <button class="btn-primary" id="sens-type-modal-confirm">Add</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- add aimbeast playlist modal -->
+  <div id="aim-modal-overlay" class="modal-backdrop hidden">
+    <div class="modal modal-wide">
+      <div class="modal-hdr">
+        <span id="aim-modal-title">Add Aimbeast playlist</span>
+        <button class="modal-x" id="aim-modal-close">&#x2715;</button>
+      </div>
+      <div class="field">
+        <label for="aim-pl-name">Name</label>
+        <input type="text" id="aim-pl-name" placeholder="e.g. Voltaic B — Dynamic" autocomplete="off" />
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="aim-pl-folder">Folder</label>
+          <div class="select-wrap">
+            <select id="aim-pl-folder"><option value="">— no folder —</option></select>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+        </div>
+        <div class="field">
+          <label for="aim-pl-game">Game tag <span class="optional">optional</span></label>
+          <input type="text" id="aim-pl-game" placeholder="CS2, Valorant…" />
+        </div>
+      </div>
+      <div class="field">
+        <label for="aim-pl-url">Workshop URL <span class="optional">optional</span></label>
+        <input type="text" id="aim-pl-url" placeholder="https://aimbeast.com/workshop/…" class="mono" />
+      </div>
+      <div class="field">
+        <label for="aim-pl-code">Playlist code <span class="optional">optional — local copy</span></label>
+        <textarea id="aim-pl-code" rows="4" placeholder="paste playlist code here…" class="mono"></textarea>
+      </div>
+      <div class="field">
+        <label for="aim-pl-notes">Notes <span class="optional">optional</span></label>
+        <textarea id="aim-pl-notes" rows="2" placeholder="difficulty, source, what it trains…"></textarea>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-ghost" id="aim-modal-cancel">Cancel</button>
+        <button class="btn-primary" id="aim-modal-confirm">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.2/dist/umd/supabase.js" integrity="sha384-yifgV8iFWyp5cgu+V1G1rtlEHpEErPlL5fTrkUELIsWq0CIVDON2WP/NlXVJT3vO" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js" integrity="sha384-+mbV2IY1Zk/X1p/nWllGySJSUN8uMs+gUAN10Or95UBH0fpj6GfKgPmgC5EXieXG" crossorigin="anonymous"></script>
+  <script src="js/db.js"></script>
+  <script src="js/routine.js"></script>
+  <script src="js/sens.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
