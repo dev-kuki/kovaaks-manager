@@ -128,6 +128,74 @@ const UI = (() => {
     return row
   }
 
+  // Scenario folders — mirrors renderFolders/makeFolderEl exactly, but bodies hold a
+  // scenarios-grid of cards instead of playlist-rows. Kept separate from the playlist
+  // functions above so nothing about playlists changes.
+  function matchesScenario(s, q) {
+    return !q || [s.name, s.game_tag, s.notes, s.share_code].some(v => (v || "").toLowerCase().includes(q))
+  }
+
+  function renderScenarioFolders(folders, scenarios, query = "") {
+    const container = document.getElementById("scenarios-container")
+    const byFolder = {}, unassigned = []
+    const visible = scenarios.filter(s => matchesScenario(s, query))
+    visible.forEach(s => { if (s.folder_id) (byFolder[s.folder_id] = byFolder[s.folder_id] || []).push(s); else unassigned.push(s) })
+    Object.values(byFolder).forEach(l => l.sort(byOrder)); unassigned.sort(byOrder)
+    document.getElementById("scenario-count").textContent = visible.length
+    container.classList.toggle("no-drag", !!query)
+    container.innerHTML = ""
+
+    if (!scenarios.length && !folders.length) {
+      container.innerHTML = `<div class="empty-state"><div class="empty-glyph">◎</div><p>No scenarios yet</p><span>Add scenarios with their share codes to launch them directly</span></div>`
+      return
+    }
+    const list = document.createElement("div"); list.className = "folders-list"
+    const favs = visible.filter(s => s.pinned).sort(byOrder)
+    if (favs.length) list.appendChild(makeScenarioFolderEl({ id: "fav", name: "★ Favorites" }, favs, "fav"))
+    folders.slice().sort(byOrder).forEach(f => { const items = byFolder[f.id] || []; if (query && !items.length) return; list.appendChild(makeScenarioFolderEl(f, items)) })
+    if (unassigned.length || (!query && folders.length)) list.appendChild(makeScenarioFolderEl({ id: "none", name: "Unsorted" }, unassigned, "ghost"))
+    if (!list.children.length) { container.innerHTML = `<div class="empty-state"><div class="empty-glyph">◻</div><p>No results for "${esc(query)}"</p></div>`; return }
+    container.appendChild(list)
+  }
+
+  // mode: "" = real folder, "ghost" = Unsorted, "fav" = Favorites
+  function makeScenarioFolderEl(folder, scenarios, mode = "") {
+    const el = document.createElement("div"); el.className = "folder-item"; el.dataset.folderId = folder.id
+    const key = "sfo-" + folder.id
+    const stored = sessionStorage.getItem(key)
+    if (stored === "1" || (stored === null && mode === "fav")) el.classList.add("open")
+    const real = !mode
+
+    el.innerHTML = `
+      <div class="folder-header">
+        ${real ? dragHandleSvg : `<span class="drag-handle-spacer"></span>`}
+        <span class="folder-chevron">›</span>
+        <span class="folder-name">${esc(folder.name)}</span>
+        <span class="folder-count">${scenarios.length}</span>
+        ${real ? `<button class="btn-edit" data-scenario-folder-rename="${folder.id}" data-folder-name="${esc(folder.name)}" title="Rename folder">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        </button>
+        <button class="btn-icon folder-del" data-scenario-folder-id="${folder.id}" title="Delete folder">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+        </button>` : ""}
+      </div>
+      <div class="folder-body"></div>`
+
+    el.querySelector(".folder-header").addEventListener("click", e => {
+      if (e.target.closest(".folder-del, [data-scenario-folder-rename], .drag-handle")) return
+      el.classList.toggle("open"); sessionStorage.setItem(key, el.classList.contains("open") ? "1" : "0")
+    })
+
+    const body = el.querySelector(".folder-body")
+    if (!scenarios.length) body.innerHTML = `<div class="empty-state" style="padding:20px"><span>Drop a scenario here</span></div>`
+    else {
+      const grid = document.createElement("div"); grid.className = "scenarios-grid"
+      scenarios.forEach(s => grid.appendChild(makeScenarioCard(s, mode !== "fav")))
+      body.appendChild(grid)
+    }
+    return el
+  }
+
   function renderScenarios(scenarios, query = "") {
     const container = document.getElementById("scenarios-container")
     const filtered = scenarios.filter(s => !query || s.name.toLowerCase().includes(query) || (s.game_tag||"").toLowerCase().includes(query))
@@ -145,11 +213,11 @@ const UI = (() => {
     container.appendChild(grid)
   }
 
-  function makeScenarioCard(s) {
+  function makeScenarioCard(s, showHandle = true) {
     const card = document.createElement("div"); card.className = "scenario-card" + (s.pinned ? " is-pinned" : ""); card.dataset.scenarioId = s.id
     card.innerHTML = `
       <div class="sc-card-top">
-        ${dragHandleSvg}
+        ${showHandle ? dragHandleSvg : '<span class="drag-handle-spacer"></span>'}
         <button class="btn-star btn-star-card" data-pin-sc="${s.id}" data-pinned="${s.pinned ? "1" : "0"}" title="${s.pinned ? "Remove from favorites" : "Add to favorites"}">
           <svg viewBox="0 0 24 24" fill="${s.pinned ? "currentColor" : "none"}" stroke="currentColor" stroke-width="1.8"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
         </button>
@@ -174,7 +242,7 @@ const UI = (() => {
   // ── drag & drop ──
   // Only the ⋮⋮ handle is draggable, so buttons/links inside rows stay clickable.
   // Folder headers reorder among themselves; rows reorder within a folder or drop onto any folder.
-  function wireFolderDragDrop(container, { onReorderFolders, onDropItem }) {
+  function wireFolderDragDrop(container, { onReorderFolders, onDropItem, itemSelector = ".playlist-row", dataKey = "playlistId" }) {
     let dragType = null, dragId = null, openTimer = null, openFor = null
     const isReal = id => id && id !== "none" && id !== "fav"
 
@@ -191,9 +259,9 @@ const UI = (() => {
     container.addEventListener("dragstart", e => {
       const handle = e.target.closest && e.target.closest(".drag-handle")
       if (!handle || container.classList.contains("no-drag")) { e.preventDefault(); return }
-      const row = handle.closest(".playlist-row"), folderEl = handle.closest(".folder-item")
+      const row = handle.closest(itemSelector), folderEl = handle.closest(".folder-item")
       if (row) {
-        dragType = "item"; dragId = row.dataset.playlistId; row.classList.add("dragging")
+        dragType = "item"; dragId = row.dataset[dataKey]; row.classList.add("dragging")
         e.dataTransfer.setDragImage(row, 16, 16)
       } else if (folderEl) {
         dragType = "folder"; dragId = folderEl.dataset.folderId; folderEl.classList.add("dragging")
@@ -219,8 +287,8 @@ const UI = (() => {
       } else {
         if (tid === "fav") return
         e.preventDefault()
-        const row = e.target.closest(".playlist-row")
-        if (row && row.dataset.playlistId !== dragId) mark(row, e); else target.classList.add("drop-into")
+        const row = e.target.closest(itemSelector)
+        if (row && row.dataset[dataKey] !== dragId) mark(row, e); else target.classList.add("drop-into")
         if (openFor && openFor !== target) stopOpenTimer()
         if (!target.classList.contains("open") && !openFor) { openFor = target; openTimer = setTimeout(() => target.classList.add("open"), 450) }
       }
@@ -240,10 +308,10 @@ const UI = (() => {
           clearMarks(); onReorderFolders(ids)
         }
       } else if (target && tid !== "fav") {
-        const ids = [...target.querySelectorAll(".folder-body .playlist-row")].map(r => r.dataset.playlistId).filter(id => id !== dragId)
-        const row = e.target.closest(".playlist-row")
-        if (row && row.dataset.playlistId !== dragId) {
-          let idx = ids.indexOf(row.dataset.playlistId); if (!row.classList.contains("drag-over-top")) idx++
+        const ids = [...target.querySelectorAll(".folder-body " + itemSelector)].map(r => r.dataset[dataKey]).filter(id => id !== dragId)
+        const row = e.target.closest(itemSelector)
+        if (row && row.dataset[dataKey] !== dragId) {
+          let idx = ids.indexOf(row.dataset[dataKey]); if (!row.classList.contains("drag-over-top")) idx++
           ids.splice(idx, 0, dragId)
         } else ids.push(dragId)
         clearMarks(); onDropItem(dragId, tid, ids)
@@ -365,10 +433,11 @@ const UI = (() => {
     overlay.onclick = e => { if (e.target === overlay) cleanup() }
   }
 
-  function openScenarioBulkModal(onConfirm) {
+  function openScenarioBulkModal(folders, onConfirm) {
     const overlay = document.getElementById("scenario-modal-overlay")
     overlay.classList.remove("hidden")
     document.getElementById("scenario-bulk-input").value = ""
+    populateFolderSelect(folders, "scenario-bulk-folder", "")
     document.getElementById("scenario-bulk-input").focus()
 
     function cleanup() {
@@ -381,10 +450,11 @@ const UI = (() => {
     document.getElementById("scenario-modal-confirm").onclick = () => {
       const raw = document.getElementById("scenario-bulk-input").value.trim()
       if (!raw) return
+      const folderId = document.getElementById("scenario-bulk-folder").value
       const lines = raw.split("\n").map(l => l.trim()).filter(Boolean)
       const parsed = lines.map(line => {
         const parts = line.split("|").map(p => p.trim())
-        return { name: parts[0]||"", shareCode: parts[1]||"", gameTag: parts[2]||"" }
+        return { name: parts[0]||"", shareCode: parts[1]||"", gameTag: parts[2]||"", folderId }
       }).filter(s => s.name)
       cleanup(); onConfirm(parsed)
     }
@@ -393,13 +463,14 @@ const UI = (() => {
     overlay.onclick = e => { if (e.target === overlay) cleanup() }
   }
 
-  function openEditScenarioModal(scenario, onSave) {
+  function openEditScenarioModal(scenario, folders, onSave) {
     const overlay = document.getElementById("edit-scenario-modal-overlay")
     overlay.classList.remove("hidden")
     document.getElementById("edit-sc-name").value = scenario.name || ""
     document.getElementById("edit-sc-share").value = scenario.share_code || ""
     document.getElementById("edit-sc-game").value = scenario.game_tag || ""
     document.getElementById("edit-sc-notes").value = scenario.notes || ""
+    populateFolderSelect(folders, "edit-sc-folder", scenario.folder_id || "")
 
     function cleanup() {
       overlay.classList.add("hidden")
@@ -412,7 +483,7 @@ const UI = (() => {
       const name = document.getElementById("edit-sc-name").value.trim()
       if (!name) return
       cleanup()
-      onSave({ name, shareCode: document.getElementById("edit-sc-share").value.trim(), gameTag: document.getElementById("edit-sc-game").value.trim(), notes: document.getElementById("edit-sc-notes").value.trim() })
+      onSave({ name, shareCode: document.getElementById("edit-sc-share").value.trim(), gameTag: document.getElementById("edit-sc-game").value.trim(), notes: document.getElementById("edit-sc-notes").value.trim(), folderId: document.getElementById("edit-sc-folder").value })
     }
     document.getElementById("edit-scenario-modal-cancel").onclick = cleanup
     document.getElementById("edit-scenario-modal-close").onclick = cleanup
@@ -424,7 +495,7 @@ const UI = (() => {
   }
 
   return {
-    toast, setStatus, setFeedback, byOrder, populateFolderSelect, renderFolders, renderScenarios,
+    toast, setStatus, setFeedback, byOrder, esc, populateFolderSelect, renderFolders, renderScenarios, renderScenarioFolders,
     wireFolderDragDrop, wireGridDragDrop,
     openFolderModal, openEditModal, openScenarioBulkModal, openEditScenarioModal, dragHandleSvg,
   }
