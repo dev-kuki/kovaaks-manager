@@ -163,6 +163,7 @@ function renderAimFolders() {
     !aimQuery || p.name.toLowerCase().includes(aimQuery) || (p.game_tag||"").toLowerCase().includes(aimQuery)
   ).length
   container.innerHTML = ""
+  container.classList.toggle("no-drag", !!aimQuery)
 
   const byFolder = {}; const unassigned = []
   aimPlaylists.forEach(p => {
@@ -175,12 +176,14 @@ function renderAimFolders() {
   unassigned.sort(UI.byOrder)
 
   const list = document.createElement("div"); list.className = "folders-list"
+  const favs = aimPlaylists.filter(p => p.pinned && (!aimQuery || p.name.toLowerCase().includes(aimQuery) || (p.game_tag||"").toLowerCase().includes(aimQuery))).sort(UI.byOrder)
+  if (favs.length) list.appendChild(makeAimFolderEl({ id: "fav", name: "★ Favorites" }, favs, "fav"))
   aimFolders.slice().sort(UI.byOrder).forEach(f => {
     const items = byFolder[f.id]||[]
     if (aimQuery && !items.length) return
     list.appendChild(makeAimFolderEl(f, items))
   })
-  if (unassigned.length) list.appendChild(makeAimFolderEl({ id: "none", name: "Unsorted" }, unassigned, true))
+  if (unassigned.length || (!aimQuery && aimFolders.length)) list.appendChild(makeAimFolderEl({ id: "none", name: "Unsorted" }, unassigned, "ghost"))
 
   if (!list.children.length) {
     container.innerHTML = `<div class="empty-state"><div class="empty-glyph">⬡</div><p>No Aimbeast playlists yet</p><span>Add playlists with their workshop URL or code</span></div>`
@@ -192,10 +195,10 @@ function renderAimFolders() {
 function makeAimFolderEl(folder, playlists, ghost = false) {
   const el = document.createElement("div"); el.className = "folder-item"; el.dataset.folderId = folder.id
   const key = "aim-fo-" + folder.id
-  if (sessionStorage.getItem(key) === "1") el.classList.add("open")
+  { const stored = sessionStorage.getItem(key); if (stored === "1" || (stored === null && ghost === "fav")) el.classList.add("open") }
 
   el.innerHTML = `
-    <div class="folder-header" ${ghost ? "" : 'draggable="true"'}>
+    <div class="folder-header">
       ${ghost ? `<span class="drag-handle-spacer"></span>` : UI.dragHandleSvg}
       <span class="folder-chevron">›</span>
       <span class="folder-name">${esc(folder.name)}</span>
@@ -210,7 +213,7 @@ function makeAimFolderEl(folder, playlists, ghost = false) {
     <div class="folder-body"></div>`
 
   el.querySelector(".folder-header").addEventListener("click", e => {
-    if (e.target.closest(".aim-folder-del, [data-aim-folder-rename]")) return
+    if (e.target.closest(".aim-folder-del, [data-aim-folder-rename], .drag-handle")) return
     el.classList.toggle("open"); sessionStorage.setItem(key, el.classList.contains("open") ? "1" : "0")
   })
 
@@ -218,7 +221,7 @@ function makeAimFolderEl(folder, playlists, ghost = false) {
   if (!playlists.length) {
     body.innerHTML = `<div class="empty-state" style="padding:20px"><span>Drop a playlist here</span></div>`
   } else {
-    playlists.forEach(p => body.appendChild(makeAimPlaylistRow(p)))
+    playlists.forEach(p => body.appendChild(makeAimPlaylistRow(p, ghost !== "fav")))
   }
   return el
 }
@@ -230,12 +233,12 @@ function safeUrl(url) {
   } catch { return null }
 }
 
-function makeAimPlaylistRow(p) {
-  const row = document.createElement("div"); row.className = "playlist-row" + (p.pinned ? " is-pinned" : ""); row.dataset.playlistId = p.id; row.draggable = true
+function makeAimPlaylistRow(p, showHandle = true) {
+  const row = document.createElement("div"); row.className = "playlist-row" + (p.pinned ? " is-pinned" : ""); row.dataset.playlistId = p.id
   const url = p.workshop_url ? safeUrl(p.workshop_url) : null
   row.innerHTML = `
-    ${UI.dragHandleSvg}
-    <button class="btn-star" data-pin-aim="${p.id}" data-pinned="${p.pinned ? "1" : "0"}" title="${p.pinned ? "Unpin" : "Pin"}">
+    ${showHandle ? UI.dragHandleSvg : '<span class="drag-handle-spacer"></span>'}
+    <button class="btn-star" data-pin-aim="${p.id}" data-pinned="${p.pinned ? "1" : "0"}" title="${p.pinned ? "Remove from favorites" : "Add to favorites"}">
       <svg viewBox="0 0 24 24" fill="${p.pinned ? "currentColor" : "none"}" stroke="currentColor" stroke-width="1.8"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
     </button>
     <span class="pl-dot" style="background:var(--success)"></span>
@@ -245,10 +248,10 @@ function makeAimPlaylistRow(p) {
     ${p.playlist_code ? `<span class="aim-badge">code</span>` : ""}
     <div class="pl-actions">
       ${url ? `<a class="btn-open-url" href="${esc(url)}" target="_blank" rel="noopener">open</a>` : ""}
-      <button class="btn-edit" data-aim-edit="${p.id}">
+      <button class="btn-edit" data-aim-edit="${p.id}" title="Edit">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
       </button>
-      <button class="btn-icon" data-aim-delete="${p.id}">
+      <button class="btn-icon" data-aim-delete="${p.id}" title="Delete">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
       </button>
     </div>`
@@ -313,30 +316,34 @@ document.getElementById("aim-search").addEventListener("input", e => {
   aimQuery = e.target.value.toLowerCase().trim(); renderAimFolders()
 })
 
-// drag & drop reordering for aimbeast folders/playlists
+// drag & drop for aimbeast folders/playlists — optimistic: the UI updates instantly, saving happens in the background
 UI.wireFolderDragDrop(document.getElementById("aim-folders-container"), {
   onReorderFolders: async ids => {
-    try { await DB.reorderAimFolders(ids); await initAimbeast() }
-    catch (err) { UI.toast("couldn't reorder — did you run the position column migration? " + err.message) }
+    ids.forEach((id, i) => { const f = aimFolders.find(x => x.id === id); if (f) f.position = i })
+    renderAimFolders()
+    try { await DB.reorderAimFolders(ids) }
+    catch (err) { UI.toast("couldn't save order — run the SQL migration in Settings. " + err.message); await initAimbeast() }
   },
   onDropItem: async (id, targetFolderId, ids) => {
-    try {
-      const folderId = targetFolderId === "none" ? null : targetFolderId
-      const pl = aimPlaylists.find(p => p.id === id)
-      if (pl && pl.folder_id !== folderId) await DB.movePlaylistToAimFolder(id, folderId)
-      await DB.reorderAimPlaylists(ids)
-      await initAimbeast()
-    } catch (err) { UI.toast("couldn't move — did you run the position column migration? " + err.message) }
+    const folderId = targetFolderId === "none" ? null : targetFolderId
+    const pl = aimPlaylists.find(p => p.id === id); if (!pl) return
+    const moved = pl.folder_id !== folderId
+    pl.folder_id = folderId
+    ids.forEach((pid, i) => { const p = aimPlaylists.find(x => x.id === pid); if (p) p.position = i })
+    sessionStorage.setItem("aim-fo-" + (folderId || "none"), "1")
+    renderAimFolders()
+    try { if (moved) await DB.movePlaylistToAimFolder(id, folderId); await DB.reorderAimPlaylists(ids) }
+    catch (err) { UI.toast("couldn't save — run the SQL migration in Settings. " + err.message); await initAimbeast() }
   },
 })
 
 document.getElementById("aim-folders-container").addEventListener("click", async e => {
   const pinBtn = e.target.closest("[data-pin-aim]")
   if (pinBtn) {
-    const id = pinBtn.dataset.pinAim
-    const wasPinned = pinBtn.dataset.pinned === "1"
-    try { await DB.toggleAimPlaylistPin(id, !wasPinned); await initAimbeast() }
-    catch (err) { UI.toast("couldn't pin — did you run the pinned column migration? " + err.message) }
+    const pl = aimPlaylists.find(p => p.id === pinBtn.dataset.pinAim); if (!pl) return
+    pl.pinned = !pl.pinned; renderAimFolders()
+    try { await DB.toggleAimPlaylistPin(pl.id, pl.pinned) }
+    catch (err) { pl.pinned = !pl.pinned; renderAimFolders(); UI.toast("couldn't favorite — run the SQL migration in Settings (pinned column). " + err.message) }
     return
   }
   const renameBtn = e.target.closest("[data-aim-folder-rename]")
