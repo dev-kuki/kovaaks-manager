@@ -2,26 +2,17 @@
   let folders = [], playlists = [], scenarios = []
   let plQuery = "", scQuery = ""
 
-  // init from saved creds
-  const savedUrl = localStorage.getItem("sb-url") || ""
-  const savedKey = localStorage.getItem("sb-key") || ""
-  if (savedUrl && savedKey) {
-    document.getElementById("sb-url").value = savedUrl
-    document.getElementById("sb-key").value = savedKey
-    await connect(savedUrl, savedKey, true)
-  }
 
   // view switching
-  document.querySelectorAll(".nav-btn").forEach(btn => {
-    btn.addEventListener("click", () => {
-      document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"))
-      document.querySelectorAll(".view").forEach(v => v.classList.remove("active"))
-      btn.classList.add("active")
-      document.getElementById("view-" + btn.dataset.view).classList.add("active")
-      if (btn.dataset.view === "sens") initSens()
-      if (btn.dataset.view === "aimbeast") initAimbeast()
-    })
-  })
+  function showView(name) {
+    document.querySelectorAll(".nav-btn").forEach(b => b.classList.toggle("active", b.dataset.view === name))
+    document.querySelectorAll(".view").forEach(v => v.classList.toggle("active", v.id === "view-" + name))
+    document.getElementById("main").scrollTop = 0
+    if (name === "sens") initSens()
+    if (name === "aimbeast") initAimbeast()
+  }
+  document.querySelectorAll(".nav-btn").forEach(btn => btn.addEventListener("click", () => showView(btn.dataset.view)))
+  document.getElementById("btn-add-playlist").addEventListener("click", () => showView("upload"))
 
   // connect
   document.getElementById("btn-save-settings").addEventListener("click", async () => {
@@ -39,8 +30,9 @@
       localStorage.setItem("sb-url", url); localStorage.setItem("sb-key", key)
       UI.setStatus("connected")
       if (!silent) UI.setFeedback("settings-feedback", "connected ✓")
-      await refresh()
-    } catch (err) { UI.setStatus("disconnected"); UI.setFeedback("settings-feedback", err.message, true) }
+      await refresh(); initSens(); initAimbeast()
+      if (!silent) showView("playlists")
+    } catch (err) { UI.setStatus("disconnected"); UI.setFeedback("settings-feedback", err.message, true); if (silent) showView("settings") }
   }
 
   async function refresh() {
@@ -48,12 +40,14 @@
     try {
       ;[folders, playlists, scenarios] = await Promise.all([DB.getFolders(), DB.getAllPlaylists(), DB.getAllScenarios()])
       UI.populateFolderSelect(folders, "pl-folder")
-      UI.renderFolders(folders, playlists, plQuery)
-      UI.renderScenarios(scenarios, scQuery)
+      render()
       Routine.populateQuickAdd(playlists, scenarios)
-      await initSens()
-      await initAimbeast()
     } catch (err) { UI.toast("refresh failed: " + err.message) }
+  }
+
+  function render() {
+    UI.renderFolders(folders, playlists, plQuery)
+    UI.renderScenarios(scenarios, scQuery)
   }
 
   // ── playlists ──
@@ -71,30 +65,34 @@
     })
   })
 
-  // drag & drop reordering — folders among themselves, playlists within/between folders
+  // drag & drop — optimistic: the UI updates instantly, saving happens in the background (reverts on error)
   UI.wireFolderDragDrop(document.getElementById("folders-container"), {
     onReorderFolders: async ids => {
-      try { await DB.reorderFolders(ids); await refresh() }
-      catch (err) { UI.toast("couldn't reorder — did you run the position column migration? " + err.message) }
+      ids.forEach((id, i) => { const f = folders.find(x => x.id === id); if (f) f.position = i })
+      render()
+      try { await DB.reorderFolders(ids) }
+      catch (err) { UI.toast("couldn't save order — run the SQL migration in Settings. " + err.message); await refresh() }
     },
     onDropItem: async (id, targetFolderId, ids) => {
-      try {
-        const folderId = targetFolderId === "none" ? null : targetFolderId
-        const pl = playlists.find(p => p.id === id)
-        if (pl && pl.folder_id !== folderId) await DB.movePlaylistToFolder(id, folderId)
-        await DB.reorderPlaylists(ids)
-        await refresh()
-      } catch (err) { UI.toast("couldn't move — did you run the position column migration? " + err.message) }
+      const folderId = targetFolderId === "none" ? null : targetFolderId
+      const pl = playlists.find(p => p.id === id); if (!pl) return
+      const moved = pl.folder_id !== folderId
+      pl.folder_id = folderId
+      ids.forEach((pid, i) => { const p = playlists.find(x => x.id === pid); if (p) p.position = i })
+      sessionStorage.setItem("fo-" + (folderId || "none"), "1")
+      render()
+      try { if (moved) await DB.movePlaylistToFolder(id, folderId); await DB.reorderPlaylists(ids) }
+      catch (err) { UI.toast("couldn't save — run the SQL migration in Settings. " + err.message); await refresh() }
     },
   })
 
   document.getElementById("folders-container").addEventListener("click", async e => {
     const pinBtn = e.target.closest("[data-pin-pl]")
     if (pinBtn) {
-      const id = pinBtn.dataset.pinPl
-      const wasPinned = pinBtn.dataset.pinned === "1"
-      try { await DB.togglePlaylistPin(id, !wasPinned); await refresh() }
-      catch (err) { UI.toast("couldn't pin — did you run the pinned column migration? " + err.message) }
+      const pl = playlists.find(p => p.id === pinBtn.dataset.pinPl); if (!pl) return
+      pl.pinned = !pl.pinned; render()
+      try { await DB.togglePlaylistPin(pl.id, pl.pinned) }
+      catch (err) { pl.pinned = !pl.pinned; render(); UI.toast("couldn't favorite — run the SQL migration in Settings (pinned column). " + err.message) }
       return
     }
     const renameBtn = e.target.closest("[data-folder-rename]")
@@ -125,7 +123,7 @@
       const pl = playlists.find(p => p.id === editBtn.dataset.playlistId)
       if (!pl) return
       UI.openEditModal(pl, folders, async updates => {
-        try { await DB.updatePlaylist(pl.id, updates); await refresh(); UI.toast(`"${updates.name}" updated`) }
+        try { Object.assign(pl, await DB.updatePlaylist(pl.id, updates)); render(); UI.toast(`"${updates.name}" updated`) }
         catch (err) { UI.toast("error: " + err.message) }
       })
       return
@@ -155,7 +153,10 @@
   const fileDrop  = document.getElementById("file-drop")
 
   fileInput.addEventListener("change", () => {
-    fileLabel.textContent = fileInput.files[0] ? fileInput.files[0].name : "Drop .json or click to browse"
+    const f = fileInput.files[0]
+    fileLabel.textContent = f ? f.name : "Drop .json or click to browse"
+    const nameEl = document.getElementById("pl-name")
+    if (f && !nameEl.value.trim()) nameEl.value = f.name.replace(/\.json$/i, "")
   })
   fileDrop.addEventListener("dragover", e => { e.preventDefault(); fileDrop.classList.add("over") })
   fileDrop.addEventListener("dragleave", () => fileDrop.classList.remove("over"))
@@ -171,16 +172,15 @@
     const name = document.getElementById("pl-name").value.trim()
     const file = fileInput.files[0]
     if (!name) { UI.setFeedback("upload-feedback", "name is required", true); return }
-    if (!file) { UI.setFeedback("upload-feedback", "pick a .json file", true); return }
     UI.setFeedback("upload-feedback", "uploading…")
     document.getElementById("btn-upload").disabled = true
     try {
-      let parsed; try { parsed = JSON.parse(await file.text()) } catch { throw new Error("not valid JSON") }
+      let parsed = null; if (file) { try { parsed = JSON.parse(await file.text()) } catch { throw new Error("that file isn't valid JSON — remove it or pick another") } }
       await DB.uploadPlaylist({ name, folderId: document.getElementById("pl-folder").value, gameTag: document.getElementById("pl-game").value.trim(), notes: document.getElementById("pl-notes").value.trim(), shareCode: document.getElementById("pl-share").value.trim(), fileData: parsed })
       UI.setFeedback("upload-feedback", `"${name}" uploaded ✓`)
       ;["pl-name","pl-game","pl-notes","pl-share"].forEach(id => document.getElementById(id).value = "")
       document.getElementById("pl-folder").value = ""; fileInput.value = ""; fileLabel.textContent = "Drop .json or click to browse"
-      await refresh()
+      await refresh(); showView("playlists"); UI.toast(`"${name}" added`)
     } catch (err) { UI.setFeedback("upload-feedback", err.message, true) }
     finally { document.getElementById("btn-upload").disabled = false }
   })
@@ -210,10 +210,10 @@
   document.getElementById("scenarios-container").addEventListener("click", async e => {
     const pinBtn = e.target.closest("[data-pin-sc]")
     if (pinBtn) {
-      const id = pinBtn.dataset.pinSc
-      const wasPinned = pinBtn.dataset.pinned === "1"
-      try { await DB.toggleScenarioPin(id, !wasPinned); await refresh() }
-      catch (err) { UI.toast("couldn't pin — did you run the pinned column migration? " + err.message) }
+      const sc = scenarios.find(s => s.id === pinBtn.dataset.pinSc); if (!sc) return
+      sc.pinned = !sc.pinned; render()
+      try { await DB.toggleScenarioPin(sc.id, sc.pinned) }
+      catch (err) { sc.pinned = !sc.pinned; render(); UI.toast("couldn't favorite — run the SQL migration in Settings (pinned column). " + err.message) }
       return
     }
     const editBtn = e.target.closest(".btn-edit[data-scenario-id]")
@@ -221,7 +221,7 @@
       const sc = scenarios.find(s => s.id === editBtn.dataset.scenarioId)
       if (!sc) return
       UI.openEditScenarioModal(sc, async updates => {
-        try { await DB.updateScenario(sc.id, updates); await refresh(); UI.toast(`"${updates.name}" updated`) }
+        try { Object.assign(sc, await DB.updateScenario(sc.id, updates)); render(); UI.toast(`"${updates.name}" updated`) }
         catch (err) { UI.toast("error: " + err.message) }
       })
       return
@@ -310,5 +310,21 @@
     } catch (err) { UI.setFeedback("import-feedback", err.message, true) }
     finally { importBtn.disabled = false }
   })
+
+  // Esc closes whatever modal is open
+  document.addEventListener("keydown", e => {
+    if (e.key !== "Escape") return
+    const open = document.querySelector(".modal-backdrop:not(.hidden)")
+    const x = open && open.querySelector(".modal-x"); if (x) x.click()
+  })
+
+  // ── init (runs last so every handler above is wired before we touch the network) ──
+  const savedUrl = localStorage.getItem("sb-url") || ""
+  const savedKey = localStorage.getItem("sb-key") || ""
+  if (savedUrl && savedKey) {
+    document.getElementById("sb-url").value = savedUrl
+    document.getElementById("sb-key").value = savedKey
+    await connect(savedUrl, savedKey, true)
+  } else showView("settings")
 
 })()
