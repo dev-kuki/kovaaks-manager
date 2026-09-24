@@ -367,6 +367,7 @@
               <pre><code>create table if not exists folders (
   id uuid default gen_random_uuid() primary key,
   name text not null,
+  position integer,
   created_at timestamptz default now()
 );
 
@@ -378,6 +379,8 @@ create table if not exists playlists (
   notes text,
   file_data jsonb,
   share_code text,
+  pinned boolean default false,
+  position integer,
   created_at timestamptz default now()
 );
 
@@ -387,6 +390,8 @@ create table if not exists scenarios (
   share_code text,
   game_tag text,
   notes text,
+  pinned boolean default false,
+  position integer,
   created_at timestamptz default now()
 );
 
@@ -400,6 +405,7 @@ create table if not exists sens (
 create table if not exists aimbeast_folders (
   id uuid default gen_random_uuid() primary key,
   name text not null,
+  position integer,
   created_at timestamptz default now()
 );
 
@@ -411,8 +417,19 @@ create table if not exists aimbeast_playlists (
   notes text,
   workshop_url text,
   playlist_code text,
+  pinned boolean default false,
+  position integer,
   created_at timestamptz default now()
 );</code></pre>
+              <p style="margin-top:2px">Already have these tables from an older version? Run this too — it's safe to run more than once and won't touch existing data:</p>
+              <pre><code>alter table folders add column if not exists position integer;
+alter table playlists add column if not exists pinned boolean default false;
+alter table playlists add column if not exists position integer;
+alter table scenarios add column if not exists pinned boolean default false;
+alter table scenarios add column if not exists position integer;
+alter table aimbeast_folders add column if not exists position integer;
+alter table aimbeast_playlists add column if not exists pinned boolean default false;
+alter table aimbeast_playlists add column if not exists position integer;</code></pre>
             </div>
           </details>
           <div class="field">
