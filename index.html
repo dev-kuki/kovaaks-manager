@@ -31,10 +31,6 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><polygon points="10 8 16 12 10 16 10 8"/></svg>
             <span>Scenarios</span>
           </button>
-          <button class="nav-btn" data-view="upload">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-            <span>Add playlist</span>
-          </button>
           <button class="nav-btn" data-view="transfer">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
             <span>Export / Import</span>
@@ -88,12 +84,27 @@
             </button>
           </div>
         </div>
-        <div id="folders-container">
-          <div class="empty-state" id="empty-playlists">
-            <div class="empty-glyph">⬡</div>
-            <p>No playlists yet</p>
-            <span>Upload a playlist and assign it to a folder</span>
+        <div class="playlists-layout">
+          <div id="folders-container">
+            <div class="empty-state" id="empty-playlists">
+              <div class="empty-glyph">⬡</div>
+              <p>No playlists yet</p>
+              <span>Upload a playlist and assign it to a folder</span>
+            </div>
           </div>
+          <aside class="playlists-aside" id="playlists-aside">
+            <div class="aside-card">
+              <div class="aside-card-hdr">Library</div>
+              <div class="aside-stat"><span>Playlists</span><strong id="stat-playlists">0</strong></div>
+              <div class="aside-stat"><span>Folders</span><strong id="stat-folders">0</strong></div>
+              <div class="aside-stat"><span>Favorites</span><strong id="stat-fav-playlists">0</strong></div>
+              <div class="aside-stat"><span>Scenarios</span><strong id="stat-scenarios">0</strong></div>
+            </div>
+            <div class="aside-card" id="aside-games-card">
+              <div class="aside-card-hdr">Top game tags</div>
+              <div id="aside-games-list"></div>
+            </div>
+          </aside>
         </div>
       </section>
 
@@ -113,59 +124,17 @@
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
               Add Scenarios
             </button>
+            <button class="btn-ghost" id="btn-new-scenario-folder">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              New Folder
+            </button>
           </div>
         </div>
         <div id="scenarios-container">
           <div class="empty-state" id="empty-scenarios">
             <div class="empty-glyph">◎</div>
             <p>No scenarios yet</p>
-            <span>Add scenarios with their share codes to launch them directly</span>
-          </div>
-        </div>
-      </section>
-
-      <!-- upload -->
-      <section id="view-upload" class="view">
-        <div class="topbar">
-          <div class="topbar-left"><h1>Add Playlist</h1></div>
-        </div>
-        <div class="form-card">
-          <div class="field">
-            <label for="pl-name">Name</label>
-            <input type="text" id="pl-name" placeholder="e.g. Voltaic Entry — Clicking" />
-          </div>
-          <div class="field-row">
-            <div class="field">
-              <label for="pl-folder">Folder</label>
-              <div class="select-wrap">
-                <select id="pl-folder"><option value="">— no folder —</option></select>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
-              </div>
-            </div>
-            <div class="field">
-              <label for="pl-game">Game tag <span class="optional">optional</span></label>
-              <input type="text" id="pl-game" placeholder="CS2, Valorant…" />
-            </div>
-          </div>
-          <div class="field">
-            <label for="pl-share">Share code <span class="optional">for open in KovaaK's</span></label>
-            <input type="text" id="pl-share" placeholder="KovaaKsXxxxxXxxxXxxx" class="mono" />
-          </div>
-          <div class="field">
-            <label>Playlist file <span class="optional">optional — only if you want to store a .json</span></label>
-            <div class="file-drop" id="file-drop">
-              <input type="file" id="pl-file" accept=".json" />
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0018 9h-1.26A8 8 0 103 16.3"/></svg>
-              <span id="file-label">Drop .json or click to browse</span>
-            </div>
-          </div>
-          <div class="field">
-            <label for="pl-notes">Notes <span class="optional">optional</span></label>
-            <textarea id="pl-notes" rows="3" placeholder="difficulty, source, what it trains…"></textarea>
-          </div>
-          <div class="form-footer">
-            <button class="btn-primary large" id="btn-upload">Add playlist</button>
-            <span id="upload-feedback"></span>
+            <span>Add scenarios with their share codes to launch them directly, and drop them into folders like your playlists</span>
           </div>
         </div>
       </section>
@@ -388,9 +357,17 @@ create table if not exists playlists (
   created_at timestamptz default now()
 );
 
+create table if not exists scenario_folders (
+  id uuid default gen_random_uuid() primary key,
+  name text not null,
+  position integer,
+  created_at timestamptz default now()
+);
+
 create table if not exists scenarios (
   id uuid default gen_random_uuid() primary key,
   name text not null,
+  folder_id uuid references scenario_folders(id) on delete set null,
   share_code text,
   game_tag text,
   notes text,
@@ -431,9 +408,11 @@ alter table playlists add column if not exists pinned boolean default false;
 alter table playlists add column if not exists position integer;
 alter table scenarios add column if not exists pinned boolean default false;
 alter table scenarios add column if not exists position integer;
+alter table scenarios add column if not exists folder_id uuid references scenario_folders(id) on delete set null;
 alter table aimbeast_folders add column if not exists position integer;
 alter table aimbeast_playlists add column if not exists pinned boolean default false;
 alter table aimbeast_playlists add column if not exists position integer;</code></pre>
+              <p style="margin-top:2px">New: scenario folders. If you already have a <code>scenarios</code> table, run the <code>create table if not exists scenario_folders</code> block above once too — it won't touch anything else.</p>
             </div>
           </details>
           <div class="field">
@@ -447,6 +426,21 @@ alter table aimbeast_playlists add column if not exists position integer;</code>
           <div class="form-footer">
             <button class="btn-primary large" id="btn-save-settings">Save & Connect</button>
             <span id="settings-feedback"></span>
+          </div>
+        </div>
+
+        <div class="form-card theme-card">
+          <div class="theme-card-hdr">
+            <h2>Appearance</h2>
+            <button class="btn-ghost btn-sm" id="btn-theme-reset">Reset to default</button>
+          </div>
+          <div class="field">
+            <label>Accent color</label>
+            <div class="theme-swatches" id="theme-swatches"></div>
+          </div>
+          <div class="field">
+            <label for="theme-transparency">Panel transparency <span class="optional" id="theme-transparency-val">50</span></label>
+            <input type="range" id="theme-transparency" min="5" max="100" value="50" />
           </div>
         </div>
       </section>
@@ -469,6 +463,54 @@ alter table aimbeast_playlists add column if not exists position integer;</code>
         <button class="btn-ghost" id="modal-cancel">Cancel</button>
         <button class="btn-primary" id="modal-confirm">Create</button>
       </div>
+    </div>
+  </div>
+
+  <!-- add playlist modal (was its own nav tab — now lives here to save space) -->
+  <div id="upload-modal-overlay" class="modal-backdrop hidden">
+    <div class="modal modal-wide">
+      <div class="modal-hdr">
+        <span>Add playlist</span>
+        <button class="modal-x" id="upload-modal-close">✕</button>
+      </div>
+      <div class="field">
+        <label for="pl-name">Name</label>
+        <input type="text" id="pl-name" placeholder="e.g. Voltaic Entry — Clicking" autocomplete="off" />
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="pl-folder">Folder</label>
+          <div class="select-wrap">
+            <select id="pl-folder"><option value="">— no folder —</option></select>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+        </div>
+        <div class="field">
+          <label for="pl-game">Game tag <span class="optional">optional</span></label>
+          <input type="text" id="pl-game" placeholder="CS2, Valorant…" />
+        </div>
+      </div>
+      <div class="field">
+        <label for="pl-share">Share code <span class="optional">for open in KovaaK's</span></label>
+        <input type="text" id="pl-share" placeholder="KovaaKsXxxxxXxxxXxxx" class="mono" />
+      </div>
+      <div class="field">
+        <label>Playlist file <span class="optional">optional — only if you want to store a .json</span></label>
+        <div class="file-drop file-drop-sm" id="file-drop">
+          <input type="file" id="pl-file" accept=".json" />
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0018 9h-1.26A8 8 0 103 16.3"/></svg>
+          <span id="file-label">Drop .json or click to browse</span>
+        </div>
+      </div>
+      <div class="field">
+        <label for="pl-notes">Notes <span class="optional">optional</span></label>
+        <textarea id="pl-notes" rows="3" placeholder="difficulty, source, what it trains…"></textarea>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-ghost" id="upload-modal-cancel">Cancel</button>
+        <button class="btn-primary" id="btn-upload">Add playlist</button>
+      </div>
+      <span id="upload-feedback"></span>
     </div>
   </div>
 
@@ -527,6 +569,13 @@ alter table aimbeast_playlists add column if not exists position integer;</code>
       </div>
       <p class="modal-hint">Paste one scenario per line in the format: <code>Name | ShareCode | GameTag</code><br/>Game tag is optional. Share code is optional but needed to launch.</p>
       <div class="field">
+        <label for="scenario-bulk-folder">Folder <span class="optional">applies to all pasted scenarios</span></label>
+        <div class="select-wrap">
+          <select id="scenario-bulk-folder"><option value="">— no folder —</option></select>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+      </div>
+      <div class="field">
         <label for="scenario-bulk-input">Scenarios</label>
         <textarea id="scenario-bulk-input" rows="10" placeholder="Tile Frenzy | KovaaKsABCDEFGH | CS2&#10;Smoothbot | KovaaKsXYZ123&#10;Close Fast Strafes"></textarea>
       </div>
@@ -555,6 +604,13 @@ alter table aimbeast_playlists add column if not exists position integer;</code>
       <div class="field">
         <label for="edit-sc-game">Game tag</label>
         <input type="text" id="edit-sc-game" placeholder="CS2, Valorant…" />
+      </div>
+      <div class="field">
+        <label for="edit-sc-folder">Folder</label>
+        <div class="select-wrap">
+          <select id="edit-sc-folder"></select>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
       </div>
       <div class="field">
         <label for="edit-sc-notes">Notes</label>
@@ -691,6 +747,7 @@ alter table aimbeast_playlists add column if not exists position integer;</code>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.2/dist/umd/supabase.js" integrity="sha384-yifgV8iFWyp5cgu+V1G1rtlEHpEErPlL5fTrkUELIsWq0CIVDON2WP/NlXVJT3vO" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js" integrity="sha384-+mbV2IY1Zk/X1p/nWllGySJSUN8uMs+gUAN10Or95UBH0fpj6GfKgPmgC5EXieXG" crossorigin="anonymous"></script>
+  <script src="js/theme.js"></script>
   <script src="js/db.js"></script>
   <script src="js/ui.js"></script>
   <script src="js/routine.js"></script>
