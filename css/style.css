@@ -90,7 +90,6 @@ body {
   font-size: 15px;
   color: #fff;
   flex-shrink: 0;
-  box-shadow: 0 0 16px var(--accent-glow);
 }
 
 .logo-text { display: flex; flex-direction: column; line-height: 1.2; }
@@ -177,10 +176,8 @@ body {
 .topbar-left h1 {
   font-size: 19px;
   font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--accent);
-  text-shadow: 0 0 18px var(--accent-glow);
+  letter-spacing: 0.02em;
+  color: var(--text);
 }
 
 .count-badge {
@@ -226,7 +223,7 @@ body {
   cursor: pointer; transition: background 0.15s, box-shadow 0.15s; white-space: nowrap;
 }
 .btn-primary svg { width: 13px; height: 13px; }
-.btn-primary:hover { background: #63a2ff; box-shadow: 0 0 20px var(--accent-glow); }
+.btn-primary:hover { background: #63a2ff; }
 .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; box-shadow: none; }
 .btn-primary.large { padding: 10px 20px; font-size: 14px; }
 
@@ -305,12 +302,27 @@ body {
 .folder-name { font-size: 13px; font-weight: 600; flex: 1; color: var(--text); }
 .folder-count { font-family: var(--mono); font-size: 10.5px; color: var(--text-3); }
 
-.folder-del { opacity: 0; transition: opacity 0.15s; }
-.folder-header:hover .folder-del { opacity: 1; }
+.folder-del, .folder-header [data-folder-rename], .folder-header [data-aim-folder-rename] { opacity: 0; transition: opacity 0.15s; }
+.folder-header:hover .folder-del, .folder-header:hover [data-folder-rename], .folder-header:hover [data-aim-folder-rename] { opacity: 1; }
 
 .folder-body { display: none; border-top: 1px solid var(--border-soft); }
 .folder-item.open .folder-body { display: block; }
 .folder-item.open { border-color: var(--border); }
+
+/* ── drag & drop ── */
+
+.drag-handle { width: 14px; height: 14px; color: var(--text-3); flex-shrink: 0; cursor: grab; opacity: 0.5; transition: opacity 0.15s, color 0.15s; }
+.drag-handle-spacer { width: 14px; flex-shrink: 0; }
+.folder-header:hover .drag-handle, .playlist-row:hover .drag-handle, .scenario-card:hover .drag-handle { opacity: 1; }
+.drag-handle:hover { color: var(--accent); }
+.folder-header[draggable="true"], .playlist-row[draggable="true"] { cursor: default; }
+
+.folder-item.dragging, .playlist-row.dragging, .scenario-card.dragging { opacity: 0.35; }
+
+.folder-item.drag-over-top, .playlist-row.drag-over-top { box-shadow: inset 0 2px 0 0 var(--accent); }
+.folder-item.drag-over-bottom, .playlist-row.drag-over-bottom { box-shadow: inset 0 -2px 0 0 var(--accent); }
+.scenario-card.drag-over-left { box-shadow: inset 2px 0 0 0 var(--accent); }
+.scenario-card.drag-over-right { box-shadow: inset -2px 0 0 0 var(--accent); }
 
 /* ── playlist rows ── */
 
@@ -781,7 +793,7 @@ body {
 }
 
 .timer-btn-main svg { width: 18px; height: 18px; }
-.timer-btn-main:hover { background: #63a2ff; border-color: #63a2ff; color: #fff; box-shadow: 0 0 20px var(--accent-glow); }
+.timer-btn-main:hover { background: #63a2ff; border-color: #63a2ff; color: #fff; }
 
 .timer-up-next {
   font-size: 11.5px;
