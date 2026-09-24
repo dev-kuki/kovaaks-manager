@@ -1104,3 +1104,51 @@ body {
   .topbar { flex-wrap: wrap; }
   .pl-actions, .queue-block-actions { opacity: 1; }
 }
+
+/* ── scenario folder chrome (reuses .folder-* classes above 1:1 — see folder-del hover rule) ── */
+.folder-header [data-scenario-folder-rename] { opacity: .6; }
+.folder-header:hover [data-scenario-folder-rename] { opacity: 1; }
+
+/* ── playlists layout: stats sidebar fills the space next to the list.
+   folders-container itself is untouched — this only wraps it. ── */
+.playlists-layout { display: flex; align-items: flex-start; gap: 20px; }
+.playlists-layout #folders-container { flex: 1; min-width: 0; }
+
+.playlists-aside { width: 240px; flex-shrink: 0; display: flex; flex-direction: column; gap: 14px; position: sticky; top: 0; }
+
+.aside-card {
+  background: var(--surface);
+  backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--r);
+  padding: 16px 18px;
+}
+.aside-card-hdr {
+  font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--accent); margin-bottom: 12px;
+}
+.aside-stat { display: flex; align-items: center; justify-content: space-between; padding: 6px 0; font-size: 12.5px; color: var(--text-2); border-bottom: 1px solid var(--border-soft); }
+.aside-stat:last-child { border-bottom: none; }
+.aside-stat strong { color: var(--text); font-family: var(--mono); font-weight: 600; }
+
+@media (max-width: 1150px) {
+  .playlists-aside { display: none; }
+}
+
+/* ── appearance / theme customizer (Settings) ── */
+.theme-card { gap: 16px; }
+.theme-card-hdr { display: flex; align-items: center; justify-content: space-between; }
+.theme-card-hdr h2 { font-size: 15px; font-weight: 700; }
+
+.theme-swatches { display: flex; flex-wrap: wrap; gap: 10px; }
+.theme-swatch {
+  width: 34px; height: 34px; border-radius: 50%; cursor: pointer;
+  border: 2px solid var(--border); padding: 0;
+  background: linear-gradient(135deg, var(--sw-a), var(--sw-b));
+  transition: transform 0.15s, border-color 0.15s;
+}
+.theme-swatch:hover { transform: scale(1.08); }
+.theme-swatch.active { border-color: var(--text); box-shadow: 0 0 0 2px var(--bg), 0 0 0 3px var(--sw-a); }
+
+#theme-transparency { width: 100%; accent-color: var(--accent); cursor: pointer; }
+#theme-transparency-val { font-family: var(--mono); color: var(--accent); text-transform: none; }
