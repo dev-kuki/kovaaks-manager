@@ -47,7 +47,7 @@ const DB = (() => {
     if (error) throw error
   }
   async function uploadPlaylist({ name, folderId, gameTag, notes, shareCode, fileData }) {
-    const { data, error } = await client.from("playlists").insert({ name, folder_id: folderId||null, game_tag: gameTag||null, notes: notes||null, share_code: shareCode||null, file_data: fileData }).select().single()
+    const { data, error } = await client.from("playlists").insert({ name, folder_id: folderId||null, game_tag: gameTag||null, notes: notes||null, share_code: shareCode||null, file_data: fileData == null ? null : fileData }).select().single()
     if (error) throw error; return data
   }
   async function updatePlaylist(id, { name, folderId, gameTag, notes, shareCode, fileData }) {
