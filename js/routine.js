@@ -174,7 +174,7 @@ const Routine = (() => {
 
   function play() {
     if (!queue.length) return
-    if (currentIdx < 0) {
+    if (currentIdx < 0 || remaining <= 0) {
       currentIdx = 0
       remaining = queue[0].totalSecs
     }
@@ -302,11 +302,11 @@ const Routine = (() => {
       list.appendChild(row)
     })
 
-    list.addEventListener("click", e => {
+    list.onclick = e => {
       const btn = e.target.closest(".quick-add-btn"); if (!btn) return
       addBlock({ name: btn.dataset.qaName, totalSecs: 300, shareCode: btn.dataset.qaCode })
       UI.toast(`added "${btn.dataset.qaName}"`)
-    })
+    }
   }
 
   // ── utils ──
