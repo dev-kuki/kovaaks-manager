@@ -9,28 +9,38 @@ const DB = (() => {
     try { const { error } = await client.from("folders").select("id").limit(1); return !error } catch { return false }
   }
 
+  // generic — writes 0..n-1 as `position` for a list of ids, in the order given
+  async function bulkPosition(table, ids) {
+    const results = await Promise.all(ids.map((id, i) => client.from(table).update({ position: i }).eq("id", id)))
+    const failed = results.find(r => r.error)
+    if (failed) throw failed.error
+  }
+
   // folders
+  // select("*") on purpose — new columns (position, pinned, …) are picked up
+  // automatically without every query needing to know the exact column list.
   async function getFolders() {
-    const { data, error } = await client.from("folders").select("*").order("name")
+    const { data, error } = await client.from("folders").select("*")
     if (error) throw error; return data
   }
   async function createFolder(name) {
     const { data, error } = await client.from("folders").insert({ name }).select().single()
     if (error) throw error; return data
   }
+  async function renameFolder(id, name) {
+    const { error } = await client.from("folders").update({ name }).eq("id", id)
+    if (error) throw error
+  }
   async function deleteFolder(id) {
     const { error } = await client.from("folders").delete().eq("id", id)
     if (error) throw error
   }
+  async function reorderFolders(ids) { await bulkPosition("folders", ids) }
 
   // playlists
   async function getAllPlaylists() {
-    const { data, error } = await client.from("playlists").select("id,name,folder_id,game_tag,notes,share_code,created_at,pinned").order("name")
-    if (!error) return data
-    // "pinned" column may not exist yet if the migration hasn't been run — fall back gracefully
-    const fallback = await client.from("playlists").select("id,name,folder_id,game_tag,notes,share_code,created_at").order("name")
-    if (fallback.error) throw fallback.error
-    return fallback.data
+    const { data, error } = await client.from("playlists").select("*")
+    if (error) throw error; return data
   }
   async function togglePlaylistPin(id, pinned) {
     const { error } = await client.from("playlists").update({ pinned }).eq("id", id)
@@ -46,6 +56,10 @@ const DB = (() => {
     const { data, error } = await client.from("playlists").update(fields).eq("id", id).select().single()
     if (error) throw error; return data
   }
+  async function movePlaylistToFolder(id, folderId) {
+    const { error } = await client.from("playlists").update({ folder_id: folderId||null }).eq("id", id)
+    if (error) throw error
+  }
   async function getPlaylistFile(id) {
     const { data, error } = await client.from("playlists").select("file_data,name").eq("id", id).single()
     if (error) throw error; return data
@@ -58,10 +72,11 @@ const DB = (() => {
     const { data, error } = await client.from("playlists").select("*").order("name")
     if (error) throw error; return data
   }
+  async function reorderPlaylists(ids) { await bulkPosition("playlists", ids) }
 
   // scenarios
   async function getAllScenarios() {
-    const { data, error } = await client.from("scenarios").select("*").order("name")
+    const { data, error } = await client.from("scenarios").select("*")
     if (error) throw error; return data
   }
   async function insertScenario({ name, shareCode, gameTag, notes }) {
@@ -80,6 +95,7 @@ const DB = (() => {
     const { error } = await client.from("scenarios").delete().eq("id", id)
     if (error) throw error
   }
+  async function reorderScenarios(ids) { await bulkPosition("scenarios", ids) }
 
   // sens
   async function getSens() {
@@ -101,21 +117,26 @@ const DB = (() => {
 
   // aimbeast folders
   async function getAimFolders() {
-    const { data, error } = await client.from("aimbeast_folders").select("*").order("name")
+    const { data, error } = await client.from("aimbeast_folders").select("*")
     if (error) throw error; return data
   }
   async function createAimFolder(name) {
     const { data, error } = await client.from("aimbeast_folders").insert({ name }).select().single()
     if (error) throw error; return data
   }
+  async function renameAimFolder(id, name) {
+    const { error } = await client.from("aimbeast_folders").update({ name }).eq("id", id)
+    if (error) throw error
+  }
   async function deleteAimFolder(id) {
     const { error } = await client.from("aimbeast_folders").delete().eq("id", id)
     if (error) throw error
   }
+  async function reorderAimFolders(ids) { await bulkPosition("aimbeast_folders", ids) }
 
   // aimbeast playlists
   async function getAllAimPlaylists() {
-    const { data, error } = await client.from("aimbeast_playlists").select("id,name,folder_id,game_tag,notes,workshop_url,playlist_code,created_at").order("name")
+    const { data, error } = await client.from("aimbeast_playlists").select("*")
     if (error) throw error; return data
   }
   async function uploadAimPlaylist({ name, folderId, gameTag, notes, workshopUrl, playlistCode }) {
@@ -126,9 +147,27 @@ const DB = (() => {
     const { data, error } = await client.from("aimbeast_playlists").update({ name, folder_id: folderId||null, game_tag: gameTag||null, notes: notes||null, workshop_url: workshopUrl||null, playlist_code: playlistCode||null }).eq("id", id).select().single()
     if (error) throw error; return data
   }
+  async function toggleAimPlaylistPin(id, pinned) {
+    const { error } = await client.from("aimbeast_playlists").update({ pinned }).eq("id", id)
+    if (error) throw error
+  }
+  async function movePlaylistToAimFolder(id, folderId) {
+    const { error } = await client.from("aimbeast_playlists").update({ folder_id: folderId||null }).eq("id", id)
+    if (error) throw error
+  }
   async function deleteAimPlaylist(id) {
     const { error } = await client.from("aimbeast_playlists").delete().eq("id", id)
     if (error) throw error
   }
-  return { init, ready, ping, getFolders, createFolder, deleteFolder, getAllPlaylists, togglePlaylistPin, uploadPlaylist, updatePlaylist, getPlaylistFile, deletePlaylist, getAllPlaylistsWithFiles, getAllScenarios, insertScenario, updateScenario, toggleScenarioPin, deleteScenario, getSens, upsertSens, addSensType, deleteSensType, getAimFolders, createAimFolder, deleteAimFolder, getAllAimPlaylists, uploadAimPlaylist, updateAimPlaylist, deleteAimPlaylist }
+  async function reorderAimPlaylists(ids) { await bulkPosition("aimbeast_playlists", ids) }
+
+  return {
+    init, ready, ping,
+    getFolders, createFolder, renameFolder, deleteFolder, reorderFolders,
+    getAllPlaylists, togglePlaylistPin, uploadPlaylist, updatePlaylist, movePlaylistToFolder, getPlaylistFile, deletePlaylist, getAllPlaylistsWithFiles, reorderPlaylists,
+    getAllScenarios, insertScenario, updateScenario, toggleScenarioPin, deleteScenario, reorderScenarios,
+    getSens, upsertSens, addSensType, deleteSensType,
+    getAimFolders, createAimFolder, renameAimFolder, deleteAimFolder, reorderAimFolders,
+    getAllAimPlaylists, uploadAimPlaylist, updateAimPlaylist, toggleAimPlaylistPin, movePlaylistToAimFolder, deleteAimPlaylist, reorderAimPlaylists,
+  }
 })()
