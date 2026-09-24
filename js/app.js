@@ -1,5 +1,5 @@
 ;(async () => {
-  let folders = [], playlists = [], scenarios = []
+  let folders = [], playlists = [], scenarios = [], scenarioFolders = []
   let plQuery = "", scQuery = ""
 
 
@@ -12,7 +12,20 @@
     if (name === "aimbeast") initAimbeast()
   }
   document.querySelectorAll(".nav-btn").forEach(btn => btn.addEventListener("click", () => showView(btn.dataset.view)))
-  document.getElementById("btn-add-playlist").addEventListener("click", () => showView("upload"))
+
+  // "Add playlist" now opens as a modal from the Playlists tab instead of its own nav tab —
+  // same form, same fields, same upload logic below, just no dedicated view to navigate to.
+  const uploadOverlay = document.getElementById("upload-modal-overlay")
+  function openUploadModal() {
+    UI.populateFolderSelect(folders, "pl-folder")
+    uploadOverlay.classList.remove("hidden")
+    document.getElementById("pl-name").focus()
+  }
+  function closeUploadModal() { uploadOverlay.classList.add("hidden") }
+  document.getElementById("btn-add-playlist").addEventListener("click", openUploadModal)
+  document.getElementById("upload-modal-close").addEventListener("click", closeUploadModal)
+  document.getElementById("upload-modal-cancel").addEventListener("click", closeUploadModal)
+  uploadOverlay.addEventListener("click", e => { if (e.target === uploadOverlay) closeUploadModal() })
 
   // connect
   document.getElementById("btn-save-settings").addEventListener("click", async () => {
@@ -38,7 +51,7 @@
   async function refresh() {
     if (!DB.ready()) return
     try {
-      ;[folders, playlists, scenarios] = await Promise.all([DB.getFolders(), DB.getAllPlaylists(), DB.getAllScenarios()])
+      ;[folders, playlists, scenarios, scenarioFolders] = await Promise.all([DB.getFolders(), DB.getAllPlaylists(), DB.getAllScenarios(), DB.getScenarioFolders().catch(() => [])])
       UI.populateFolderSelect(folders, "pl-folder")
       render()
       Routine.populateQuickAdd(playlists, scenarios)
@@ -47,7 +60,27 @@
 
   function render() {
     UI.renderFolders(folders, playlists, plQuery)
-    UI.renderScenarios(scenarios, scQuery)
+    UI.renderScenarioFolders(scenarioFolders, scenarios, scQuery)
+    updateAside()
+  }
+
+  // Fills the empty space next to the playlists list with a few at-a-glance stats.
+  // Purely additive — doesn't read from or touch the folders-container markup.
+  function updateAside() {
+    const favCount = playlists.filter(p => p.pinned).length
+    document.getElementById("stat-playlists").textContent = playlists.length
+    document.getElementById("stat-folders").textContent = folders.length
+    document.getElementById("stat-fav-playlists").textContent = favCount
+    document.getElementById("stat-scenarios").textContent = scenarios.length
+
+    const counts = {}
+    ;[...playlists, ...scenarios].forEach(x => { if (x.game_tag) counts[x.game_tag] = (counts[x.game_tag] || 0) + 1 })
+    const top = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 6)
+    const listEl = document.getElementById("aside-games-list")
+    const cardEl = document.getElementById("aside-games-card")
+    if (!top.length) { cardEl.style.display = "none"; return }
+    cardEl.style.display = ""
+    listEl.innerHTML = top.map(([tag, n]) => `<div class="aside-stat"><span>${UI.esc(tag)}</span><strong>${n}</strong></div>`).join("")
   }
 
   // ── playlists ──
@@ -180,31 +213,57 @@
       UI.setFeedback("upload-feedback", `"${name}" uploaded ✓`)
       ;["pl-name","pl-game","pl-notes","pl-share"].forEach(id => document.getElementById(id).value = "")
       document.getElementById("pl-folder").value = ""; fileInput.value = ""; fileLabel.textContent = "Drop .json or click to browse"
-      await refresh(); showView("playlists"); UI.toast(`"${name}" added`)
+      await refresh(); closeUploadModal(); UI.toast(`"${name}" added`)
     } catch (err) { UI.setFeedback("upload-feedback", err.message, true) }
     finally { document.getElementById("btn-upload").disabled = false }
   })
 
   // ── scenarios ──
+  // Mirrors the playlists folder setup above (new folder button, drag & drop between
+  // folders, rename/delete) so scenarios work the same way playlists do.
 
   document.getElementById("scenario-search").addEventListener("input", e => {
     scQuery = e.target.value.toLowerCase().trim()
-    UI.renderScenarios(scenarios, scQuery)
+    UI.renderScenarioFolders(scenarioFolders, scenarios, scQuery)
+  })
+
+  document.getElementById("btn-new-scenario-folder").addEventListener("click", () => {
+    UI.openFolderModal(async name => {
+      if (!DB.ready()) { UI.toast("not connected"); return }
+      try { await DB.createScenarioFolder(name); await refresh(); UI.toast(`"${name}" created`) }
+      catch (err) { UI.toast("couldn't create folder — run the scenario_folders SQL migration in Settings. " + err.message) }
+    })
   })
 
   document.getElementById("btn-add-scenario").addEventListener("click", () => {
-    UI.openScenarioBulkModal(async items => {
+    UI.openScenarioBulkModal(scenarioFolders, async items => {
       if (!DB.ready()) { UI.toast("not connected"); return }
       try {
         await Promise.all(items.map(s => DB.insertScenario(s)))
         await refresh(); UI.toast(`added ${items.length} scenario${items.length !== 1 ? "s" : ""}`)
-      } catch (err) { UI.toast("error: " + err.message) }
+      } catch (err) { UI.toast("couldn't add — if this is a fresh feature, run the SQL migration in Settings. " + err.message) }
     })
   })
 
-  UI.wireGridDragDrop(document.getElementById("scenarios-container"), ".scenario-card", "scenarioId", async ids => {
-    try { await DB.reorderScenarios(ids); await refresh() }
-    catch (err) { UI.toast("couldn't reorder — did you run the position column migration? " + err.message) }
+  UI.wireFolderDragDrop(document.getElementById("scenarios-container"), {
+    itemSelector: ".scenario-card", dataKey: "scenarioId",
+    onReorderFolders: async ids => {
+      ids.forEach((id, i) => { const f = scenarioFolders.find(x => x.id === id); if (f) f.position = i })
+      render()
+      try { await DB.reorderScenarioFolders(ids) }
+      catch (err) { UI.toast("couldn't save order — run the SQL migration in Settings. " + err.message); await refresh() }
+    },
+    onDropItem: async (id, targetFolderId, ids) => {
+      const folderId = targetFolderId === "none" ? null : targetFolderId
+      const sc = scenarios.find(s => s.id === id); if (!sc) return
+      const moved = sc.folder_id !== folderId
+      sc.folder_id = folderId
+      ids.forEach((sid, i) => { const s = scenarios.find(x => x.id === sid); if (s) s.position = i })
+      sessionStorage.setItem("sfo-" + (folderId || "none"), "1")
+      render()
+      try { if (moved) await DB.moveScenarioToFolder(id, folderId); await DB.reorderScenarios(ids) }
+      catch (err) { UI.toast("couldn't save — run the SQL migration in Settings. " + err.message); await refresh() }
+    },
   })
 
   document.getElementById("scenarios-container").addEventListener("click", async e => {
@@ -216,11 +275,28 @@
       catch (err) { sc.pinned = !sc.pinned; render(); UI.toast("couldn't favorite — run the SQL migration in Settings (pinned column). " + err.message) }
       return
     }
+    const renameBtn = e.target.closest("[data-scenario-folder-rename]")
+    if (renameBtn) {
+      const id = renameBtn.dataset.scenarioFolderRename
+      UI.openFolderModal(async name => {
+        try { await DB.renameScenarioFolder(id, name); await refresh(); UI.toast(`renamed to "${name}"`) }
+        catch (err) { UI.toast("error: " + err.message) }
+      }, { name: renameBtn.dataset.folderName })
+      return
+    }
+    if (e.target.closest(".folder-del")) {
+      const id = e.target.closest("[data-scenario-folder-id]").dataset.scenarioFolderId
+      const f = scenarioFolders.find(x => x.id === id)
+      if (!f || !confirm(`Delete folder "${f.name}"?\nScenarios will become unsorted.`)) return
+      try { await DB.deleteScenarioFolder(id); await refresh(); UI.toast(`"${f.name}" deleted`) }
+      catch (err) { UI.toast("error: " + err.message) }
+      return
+    }
     const editBtn = e.target.closest(".btn-edit[data-scenario-id]")
     if (editBtn) {
       const sc = scenarios.find(s => s.id === editBtn.dataset.scenarioId)
       if (!sc) return
-      UI.openEditScenarioModal(sc, async updates => {
+      UI.openEditScenarioModal(sc, scenarioFolders, async updates => {
         try { Object.assign(sc, await DB.updateScenario(sc.id, updates)); render(); UI.toast(`"${updates.name}" updated`) }
         catch (err) { UI.toast("error: " + err.message) }
       })
@@ -309,6 +385,36 @@
       UI.setFeedback("import-feedback", `imported ${count} playlists ✓`)
     } catch (err) { UI.setFeedback("import-feedback", err.message, true) }
     finally { importBtn.disabled = false }
+  })
+
+  // ── appearance/theme ──
+
+  function renderThemeSwatches() {
+    const state = Theme.load()
+    const wrap = document.getElementById("theme-swatches")
+    wrap.innerHTML = Theme.PRESETS.map(p => `
+      <button type="button" class="theme-swatch${p.id === state.preset ? " active" : ""}" data-theme-preset="${p.id}" title="${p.name}"
+        style="--sw-a:${p.accent};--sw-b:${p.accent2}"></button>`).join("")
+  }
+  renderThemeSwatches()
+  document.getElementById("theme-transparency").value = Theme.load().transparency
+  document.getElementById("theme-transparency-val").textContent = Theme.load().transparency
+
+  document.getElementById("theme-swatches").addEventListener("click", e => {
+    const btn = e.target.closest("[data-theme-preset]"); if (!btn) return
+    Theme.set({ preset: btn.dataset.themePreset })
+    renderThemeSwatches()
+  })
+  document.getElementById("theme-transparency").addEventListener("input", e => {
+    document.getElementById("theme-transparency-val").textContent = e.target.value
+    Theme.set({ transparency: Number(e.target.value) })
+  })
+  document.getElementById("btn-theme-reset").addEventListener("click", () => {
+    const s = Theme.reset()
+    renderThemeSwatches()
+    document.getElementById("theme-transparency").value = s.transparency
+    document.getElementById("theme-transparency-val").textContent = s.transparency
+    UI.toast("appearance reset")
   })
 
   // Esc closes whatever modal is open
