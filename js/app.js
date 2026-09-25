@@ -1,4 +1,12 @@
 ;(async () => {
+  // Falls back to a no-op if js/theme.js didn't load for any reason (e.g. a deploy
+  // that's missing the new file) — appearance settings just won't do anything in that
+  // case, instead of taking playlists/scenarios down with it.
+  const ThemeSafe = (typeof Theme !== "undefined") ? Theme : {
+    PRESETS: [], load: () => ({ preset: "cyan", transparency: 50 }),
+    set: () => ({ preset: "cyan", transparency: 50 }), reset: () => ({ preset: "cyan", transparency: 50 }),
+  }
+
   let folders = [], playlists = [], scenarios = [], scenarioFolders = []
   let plQuery = "", scQuery = ""
 
@@ -388,34 +396,37 @@
   })
 
   // ── appearance/theme ──
-
-  function renderThemeSwatches() {
-    const state = Theme.load()
-    const wrap = document.getElementById("theme-swatches")
-    wrap.innerHTML = Theme.PRESETS.map(p => `
-      <button type="button" class="theme-swatch${p.id === state.preset ? " active" : ""}" data-theme-preset="${p.id}" title="${p.name}"
-        style="--sw-a:${p.accent};--sw-b:${p.accent2}"></button>`).join("")
-  }
-  renderThemeSwatches()
-  document.getElementById("theme-transparency").value = Theme.load().transparency
-  document.getElementById("theme-transparency-val").textContent = Theme.load().transparency
-
-  document.getElementById("theme-swatches").addEventListener("click", e => {
-    const btn = e.target.closest("[data-theme-preset]"); if (!btn) return
-    Theme.set({ preset: btn.dataset.themePreset })
+  // Wrapped defensively: a problem in here should never be able to take the rest of
+  // init (and therefore playlists/scenarios loading) down with it.
+  try {
+    function renderThemeSwatches() {
+      const state = ThemeSafe.load()
+      const wrap = document.getElementById("theme-swatches")
+      wrap.innerHTML = ThemeSafe.PRESETS.map(p => `
+        <button type="button" class="theme-swatch${p.id === state.preset ? " active" : ""}" data-theme-preset="${p.id}" title="${p.name}"
+          style="--sw-a:${p.accent};--sw-b:${p.accent2}"></button>`).join("")
+    }
     renderThemeSwatches()
-  })
-  document.getElementById("theme-transparency").addEventListener("input", e => {
-    document.getElementById("theme-transparency-val").textContent = e.target.value
-    Theme.set({ transparency: Number(e.target.value) })
-  })
-  document.getElementById("btn-theme-reset").addEventListener("click", () => {
-    const s = Theme.reset()
-    renderThemeSwatches()
-    document.getElementById("theme-transparency").value = s.transparency
-    document.getElementById("theme-transparency-val").textContent = s.transparency
-    UI.toast("appearance reset")
-  })
+    document.getElementById("theme-transparency").value = ThemeSafe.load().transparency
+    document.getElementById("theme-transparency-val").textContent = ThemeSafe.load().transparency
+
+    document.getElementById("theme-swatches").addEventListener("click", e => {
+      const btn = e.target.closest("[data-theme-preset]"); if (!btn) return
+      ThemeSafe.set({ preset: btn.dataset.themePreset })
+      renderThemeSwatches()
+    })
+    document.getElementById("theme-transparency").addEventListener("input", e => {
+      document.getElementById("theme-transparency-val").textContent = e.target.value
+      ThemeSafe.set({ transparency: Number(e.target.value) })
+    })
+    document.getElementById("btn-theme-reset").addEventListener("click", () => {
+      const s = ThemeSafe.reset()
+      renderThemeSwatches()
+      document.getElementById("theme-transparency").value = s.transparency
+      document.getElementById("theme-transparency-val").textContent = s.transparency
+      UI.toast("appearance reset")
+    })
+  } catch (err) { console.error("appearance settings failed to init:", err) }
 
   // Esc closes whatever modal is open
   document.addEventListener("keydown", e => {
