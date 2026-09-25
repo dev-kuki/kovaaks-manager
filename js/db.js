@@ -74,18 +74,43 @@ const DB = (() => {
   }
   async function reorderPlaylists(ids) { await bulkPosition("playlists", ids) }
 
+  // scenario folders (mirrors playlist folders)
+  async function getScenarioFolders() {
+    const { data, error } = await client.from("scenario_folders").select("*")
+    if (error) throw error; return data
+  }
+  async function createScenarioFolder(name) {
+    const { data, error } = await client.from("scenario_folders").insert({ name }).select().single()
+    if (error) throw error; return data
+  }
+  async function renameScenarioFolder(id, name) {
+    const { error } = await client.from("scenario_folders").update({ name }).eq("id", id)
+    if (error) throw error
+  }
+  async function deleteScenarioFolder(id) {
+    const { error } = await client.from("scenario_folders").delete().eq("id", id)
+    if (error) throw error
+  }
+  async function reorderScenarioFolders(ids) { await bulkPosition("scenario_folders", ids) }
+
   // scenarios
   async function getAllScenarios() {
     const { data, error } = await client.from("scenarios").select("*")
     if (error) throw error; return data
   }
-  async function insertScenario({ name, shareCode, gameTag, notes }) {
-    const { data, error } = await client.from("scenarios").insert({ name, share_code: shareCode||null, game_tag: gameTag||null, notes: notes||null }).select().single()
+  async function insertScenario({ name, shareCode, gameTag, notes, folderId }) {
+    const { data, error } = await client.from("scenarios").insert({ name, share_code: shareCode||null, game_tag: gameTag||null, notes: notes||null, folder_id: folderId||null }).select().single()
     if (error) throw error; return data
   }
-  async function updateScenario(id, { name, shareCode, gameTag, notes }) {
-    const { data, error } = await client.from("scenarios").update({ name, share_code: shareCode||null, game_tag: gameTag||null, notes: notes||null }).eq("id", id).select().single()
+  async function updateScenario(id, { name, shareCode, gameTag, notes, folderId }) {
+    const fields = { name, share_code: shareCode||null, game_tag: gameTag||null, notes: notes||null }
+    if (folderId !== undefined) fields.folder_id = folderId||null
+    const { data, error } = await client.from("scenarios").update(fields).eq("id", id).select().single()
     if (error) throw error; return data
+  }
+  async function moveScenarioToFolder(id, folderId) {
+    const { error } = await client.from("scenarios").update({ folder_id: folderId||null }).eq("id", id)
+    if (error) throw error
   }
   async function toggleScenarioPin(id, pinned) {
     const { error } = await client.from("scenarios").update({ pinned }).eq("id", id)
@@ -165,7 +190,8 @@ const DB = (() => {
     init, ready, ping,
     getFolders, createFolder, renameFolder, deleteFolder, reorderFolders,
     getAllPlaylists, togglePlaylistPin, uploadPlaylist, updatePlaylist, movePlaylistToFolder, getPlaylistFile, deletePlaylist, getAllPlaylistsWithFiles, reorderPlaylists,
-    getAllScenarios, insertScenario, updateScenario, toggleScenarioPin, deleteScenario, reorderScenarios,
+    getScenarioFolders, createScenarioFolder, renameScenarioFolder, deleteScenarioFolder, reorderScenarioFolders,
+    getAllScenarios, insertScenario, updateScenario, moveScenarioToFolder, toggleScenarioPin, deleteScenario, reorderScenarios,
     getSens, upsertSens, addSensType, deleteSensType,
     getAimFolders, createAimFolder, renameAimFolder, deleteAimFolder, reorderAimFolders,
     getAllAimPlaylists, uploadAimPlaylist, updateAimPlaylist, toggleAimPlaylistPin, movePlaylistToAimFolder, deleteAimPlaylist, reorderAimPlaylists,
