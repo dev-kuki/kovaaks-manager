@@ -12,12 +12,18 @@ Self-hosted KovaaK's / Aimbeast playlist manager backed by Supabase. Organize pl
 
 - Folders for playlists, scenarios, and Aimbeast playlists, with drag-and-drop reordering — drag a folder to move it up/down, drag an item onto a different folder to move it there, drag within a folder to reorder
 - Pin any playlist/scenario as a favorite (gold star) — pinning is just a visual flag now, it doesn't force a sort order, so it won't fight with your manual ordering
+- Color any folder or playlist (hover → dot → pick a preset or a custom color); needs the two `color` lines from the Settings SQL block
+- Folders inside folders, everywhere (playlists, scenarios and Aimbeast): click the folder-plus icon for a subfolder, pick an "Inside" folder when creating/editing, or just **drag a folder onto the middle of another folder** to nest it (top/bottom edge = reorder, drop on "Unsorted" = back to top level). Needs the `parent_id` lines from the Settings SQL block
 - Rename folders inline
 - Scenario library with folders (just like playlists), bulk add with an optional folder, drag-to-reorder cards
 - "Add playlist" lives as a button/modal inside the Playlists tab instead of its own nav tab
 - Appearance settings: accent color presets + a panel-transparency slider, saved locally in your browser
 - Routine builder with a countdown timer and sound cues
 - Sensitivity tracker + eDPI / cm-per-360 calculator
-- Export/import your whole library as a `.zip`
+- Export/import your whole library (playlists, scenarios, Aimbeast, all folders and nesting) as a `.zip`
 
 Everything lives in your own Supabase project — this is a static site with no backend of its own.
+
+## Minecraft font
+
+Settings → Appearance → Font → **Minecraft**. For the real look, download [Monocraft](https://github.com/IdreesInc/Monocraft/releases) (free, open license), put `Monocraft.ttf` in a `fonts/` folder next to `index.html`, and push it to GitHub. Without the file it falls back to the Google font Press Start 2P.
