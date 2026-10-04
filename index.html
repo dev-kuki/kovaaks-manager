@@ -7,6 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
@@ -452,6 +453,26 @@ alter table aimbeast_playlists add column if not exists position integer;</code>
           <div class="field">
             <label>Accent color</label>
             <div class="theme-swatches" id="theme-swatches"></div>
+          </div>
+          <div class="field">
+            <label>Style</label>
+            <div class="seg"><button type="button" data-theme-opt="style:block">Blocky</button><button type="button" data-theme-opt="style:soft">Soft</button></div>
+          </div>
+          <div class="field">
+            <label>Font</label>
+            <div class="seg"><button type="button" data-theme-opt="font:default">Clean</button><button type="button" data-theme-opt="font:minecraft">Minecraft</button></div>
+          </div>
+          <div class="field">
+            <label>Background</label>
+            <div class="seg"><button type="button" data-theme-opt="bg:blocks">Blocks</button><button type="button" data-theme-opt="bg:stars">Stars</button><button type="button" data-theme-opt="bg:grid">Grid</button><button type="button" data-theme-opt="bg:off">Off</button></div>
+          </div>
+          <div class="field">
+            <label>Animations</label>
+            <div class="seg"><button type="button" data-theme-opt="motion:normal">Normal</button><button type="button" data-theme-opt="motion:calm">Calm</button><button type="button" data-theme-opt="motion:off">Off</button></div>
+          </div>
+          <div class="field">
+            <label>Density</label>
+            <div class="seg"><button type="button" data-theme-opt="density:comfy">Comfy</button><button type="button" data-theme-opt="density:compact">Compact</button></div>
           </div>
           <div class="field">
             <label for="theme-transparency">Panel transparency <span class="optional" id="theme-transparency-val">50</span></label>
