@@ -80,6 +80,7 @@ const UI = (() => {
         <span class="folder-chevron">›</span>
         <span class="folder-name">${esc(folder.name)}</span>
         <span class="folder-count">${playlists.length}</span>
+        ${real ? colorBtn("folder", folder.id, folder.color) : ""}
         ${real ? `<button class="btn-edit" data-folder-rename="${folder.id}" data-folder-name="${esc(folder.name)}" title="Rename folder">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
         </button>
@@ -88,9 +89,10 @@ const UI = (() => {
         </button>` : ""}
       </div>
       <div class="folder-body"></div>`
+    applyColor(el, folder)
 
     el.querySelector(".folder-header").addEventListener("click", e => {
-      if (e.target.closest(".folder-del, [data-folder-rename], .drag-handle")) return
+      if (e.target.closest(".folder-del, [data-folder-rename], .drag-handle, .color-btn")) return
       el.classList.toggle("open"); sessionStorage.setItem(key, el.classList.contains("open") ? "1" : "0")
     })
 
@@ -101,7 +103,7 @@ const UI = (() => {
   }
 
   function makePlaylistRow(p, showHandle = true) {
-    const row = document.createElement("div"); row.className = "playlist-row" + (p.pinned ? " is-pinned" : ""); row.dataset.playlistId = p.id
+    const row = document.createElement("div"); row.className = "playlist-row" + (p.pinned ? " is-pinned" : ""); row.dataset.playlistId = p.id; applyColor(row, p)
     row.innerHTML = `
       ${showHandle ? dragHandleSvg : '<span class="drag-handle-spacer"></span>'}
       <button class="btn-star" data-pin-pl="${p.id}" data-pinned="${p.pinned ? "1" : "0"}" title="${p.pinned ? "Remove from favorites" : "Add to favorites"}">
@@ -111,6 +113,7 @@ const UI = (() => {
       <span class="pl-name" title="${esc(p.notes || p.name)}">${esc(p.name)}</span>
       ${p.game_tag ? `<span class="pl-tag">${esc(p.game_tag)}</span>` : ""}
       <div class="pl-actions">
+        ${colorBtn("playlist", p.id, p.color)}
         ${p.share_code ? `<a class="btn-launch" href="steam://run/824270/?action=jump-to-playlist;sharecode=${esc(p.share_code)}">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>open
         </a>` : ""}
@@ -490,12 +493,49 @@ const UI = (() => {
     overlay.onclick = e => { if (e.target === overlay) cleanup() }
   }
 
+  // ── colors (folders + playlists) ──
+  const COLORS = ["#5ad1ff","#4f8cff","#8b7bff","#d36bff","#ff6b9a","#ff6b5a","#ffa24d","#ffd24d","#4fdc8a","#2ee6c1"]
+  const safeColor = c => /^#[0-9a-f]{6}$/i.test(c || "") ? c : ""
+  function colorBtn(kind, id, color) {
+    const c = safeColor(color)
+    return `<button type="button" class="color-btn${c ? " has" : ""}" data-color-kind="${kind}" data-color-id="${id}" data-color="${c}" title="Change color" style="--c:${c || "transparent"}"></button>`
+  }
+  function applyColor(el, item) {
+    const c = safeColor(item.color)
+    if (c) { el.classList.add("has-color"); el.style.setProperty("--fc", c) }
+  }
+  let popEl = null
+  function closeColorPop() { if (popEl) { popEl.remove(); popEl = null } }
+  function openColorPicker(btn, current, onPick) {
+    closeColorPop()
+    const pop = document.createElement("div"); pop.className = "color-pop"
+    pop.innerHTML = COLORS.map(c => `<button type="button" class="sw${c === current ? " active" : ""}" data-sw="${c}" style="--c:${c}"></button>`).join("") +
+      `<button type="button" class="sw-clear" data-sw="">no color</button><label class="sw-custom">custom<input type="color" value="${current || "#5ad1ff"}"></label>`
+    document.body.appendChild(pop); popEl = pop
+    const r = btn.getBoundingClientRect()
+    pop.style.top = Math.min(r.bottom + 6, window.innerHeight - pop.offsetHeight - 8) + "px"
+    pop.style.left = Math.max(8, Math.min(r.left - 10, window.innerWidth - pop.offsetWidth - 8)) + "px"
+    pop.addEventListener("click", e => { const b = e.target.closest("[data-sw]"); if (!b) return; onPick(b.dataset.sw); closeColorPop() })
+    pop.querySelector("input[type=color]").addEventListener("change", e => { onPick(e.target.value); closeColorPop() })
+  }
+  document.addEventListener("click", e => {
+    const btn = e.target.closest(".color-btn")
+    if (btn) {
+      e.stopPropagation()
+      openColorPicker(btn, btn.dataset.color, color => document.dispatchEvent(new CustomEvent("color-pick", { detail: { kind: btn.dataset.colorKind, id: btn.dataset.colorId, color } })))
+      return
+    }
+    if (popEl && !e.target.closest(".color-pop")) closeColorPop()
+  })
+  document.addEventListener("keydown", e => { if (e.key === "Escape") closeColorPop() })
+  window.addEventListener("scroll", closeColorPop, true)
+
   function esc(str) {
     return String(str).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;")
   }
 
   return {
-    toast, setStatus, setFeedback, byOrder, esc, populateFolderSelect, renderFolders, renderScenarios, renderScenarioFolders,
+    toast, setStatus, setFeedback, byOrder, esc, safeColor, colorBtn, populateFolderSelect, renderFolders, renderScenarios, renderScenarioFolders,
     wireFolderDragDrop, wireGridDragDrop,
     openFolderModal, openEditModal, openScenarioBulkModal, openEditScenarioModal, dragHandleSvg,
   }
