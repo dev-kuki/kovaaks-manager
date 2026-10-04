@@ -1,0 +1,76 @@
+/* ═══ Aim Resources — design layer (loaded after style.css) ═══
+   Direction: a dark "deepslate" workshop. Flat panels with 2px bevels (inventory-UI cues), a hotbar nav,
+   Monocraft type, one accent colour from the theme. Background sits behind transparent panels so it is
+   actually visible: texture → horizon glow → vignette, plus drifting blocks from theme.js.            */
+
+:root { --bevel-hi: rgba(255,255,255,.075); --bevel-lo: rgba(0,0,0,.55); --panel: rgba(8,13,24,.80); --ink: #e9eef7; }
+
+/* 1 ── background (the old #main had an opaque fill that hid the canvas completely) */
+html {
+  background-color: var(--bg);
+  background-image:
+    radial-gradient(120% 52% at 50% 118%, color-mix(in srgb, var(--accent) 24%, transparent), transparent 64%),
+    radial-gradient(55% 38% at 0% 0%, color-mix(in srgb, var(--accent-2) 10%, transparent), transparent 72%),
+    radial-gradient(ellipse at 50% 42%, transparent 48%, rgba(0,0,0,.62) 100%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='48' shape-rendering='crispEdges'%3E%3Crect x='16' y='0' width='8' height='8' fill='black' fill-opacity='0.12'/%3E%3Crect x='24' y='0' width='8' height='8' fill='black' fill-opacity='0.12'/%3E%3Crect x='0' y='8' width='8' height='8' fill='black' fill-opacity='0.12'/%3E%3Crect x='32' y='8' width='8' height='8' fill='black' fill-opacity='0.12'/%3E%3Crect x='40' y='8' width='8' height='8' fill='black' fill-opacity='0.12'/%3E%3Crect x='0' y='16' width='8' height='8' fill='white' fill-opacity='0.035'/%3E%3Crect x='8' y='16' width='8' height='8' fill='black' fill-opacity='0.3'/%3E%3Crect x='16' y='16' width='8' height='8' fill='white' fill-opacity='0.035'/%3E%3Crect x='24' y='16' width='8' height='8' fill='black' fill-opacity='0.2'/%3E%3Crect x='0' y='24' width='8' height='8' fill='black' fill-opacity='0.12'/%3E%3Crect x='40' y='24' width='8' height='8' fill='black' fill-opacity='0.12'/%3E%3Crect x='8' y='32' width='8' height='8' fill='black' fill-opacity='0.12'/%3E%3Crect x='24' y='32' width='8' height='8' fill='black' fill-opacity='0.12'/%3E%3Crect x='32' y='32' width='8' height='8' fill='black' fill-opacity='0.3'/%3E%3Crect x='0' y='40' width='8' height='8' fill='black' fill-opacity='0.2'/%3E%3Crect x='8' y='40' width='8' height='8' fill='black' fill-opacity='0.2'/%3E%3Crect x='16' y='40' width='8' height='8' fill='black' fill-opacity='0.2'/%3E%3C/svg%3E");
+  background-size: auto, auto, auto, 48px 48px;
+  background-attachment: fixed;
+}
+html body, html[data-style] body, #main { background: transparent; }
+#topnav { background: rgba(5,8,16,.74); border-bottom: 2px solid var(--border); }
+
+/* 2 ── layout: use the screen */
+.view { max-width: 1520px; padding: 36px clamp(20px, 4.5vw, 76px) 72px; }
+.playlists-layout { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 32px; align-items: start; }
+.playlists-aside { width: auto; position: sticky; top: 8px; gap: 18px; }
+@media (max-width: 1100px) { .playlists-layout { grid-template-columns: minmax(0, 1fr); } .playlists-aside { position: static; } }
+.topbar { margin-bottom: 30px; }
+
+/* 3 ── type */
+[data-font="minecraft"] body { font-size: 14px; letter-spacing: .015em; -webkit-font-smoothing: none; text-rendering: optimizeSpeed; }
+html .topbar h1 { font-size: 26px; letter-spacing: .02em; }
+html[data-style="block"] .topbar h1 { text-shadow: 3px 3px 0 rgba(0,0,0,.6) !important; }
+.count-badge { font-size: 12px; padding: 4px 10px; }
+.aside-card-hdr, .res-row.res-head { letter-spacing: .12em; }
+
+/* 4 ── panels: flat, bevelled, quiet */
+html[data-style="block"] .aside-card, html[data-style="block"] .form-card, html[data-style="block"] .scenario-card, html[data-style="block"] .res-body-in, html[data-style="block"] .modal {
+  background: var(--panel);
+  box-shadow: inset 2px 2px 0 var(--bevel-hi), inset -2px -2px 0 var(--bevel-lo), 4px 4px 0 rgba(0,0,0,.38);
+}
+html[data-style="block"] .folder-item { box-shadow: inset 2px 2px 0 var(--bevel-hi), inset -2px -2px 0 var(--bevel-lo), 5px 5px 0 rgba(0,0,0,.34); }
+.folder-header { padding: 18px 22px; }
+.folder-name { font-size: 15px; }
+.playlist-row { padding-top: 14px; padding-bottom: 14px; }
+.subfolders { padding: 12px 14px 8px 26px; }
+.aside-card { padding: 22px 24px; }
+.aside-stat { padding: 9px 0; font-size: 13px; }
+
+/* 5 ── hotbar nav */
+html[data-style="block"] .nav-btn { border: 2px solid transparent; padding: 9px 14px; background: rgba(0,0,0,.28); box-shadow: inset 2px 2px 0 var(--bevel-hi), inset -2px -2px 0 var(--bevel-lo); }
+html[data-style="block"] .nav-btn:hover { background: rgba(255,255,255,.07); color: var(--ink); }
+html[data-style="block"] .nav-btn.active { border-color: var(--ink); color: #fff; background: var(--accent-dim); box-shadow: inset 0 0 0 2px rgba(0,0,0,.65); }
+.nav { gap: 6px; }
+
+
+/* 6 ── buttons: pressable slab */
+html[data-style="block"] .btn-primary { padding: 10px 18px; border: 2px solid rgba(0,0,0,.55); box-shadow: inset 2px 2px 0 rgba(255,255,255,.35), inset -2px -2px 0 rgba(0,0,0,.28), 0 4px 0 rgba(0,0,0,.5); }
+html[data-style="block"] .btn-primary:hover { filter: brightness(1.08); }
+html[data-style="block"] .btn-primary:active { transform: translateY(3px); box-shadow: inset 2px 2px 0 rgba(255,255,255,.25), inset -2px -2px 0 rgba(0,0,0,.3), 0 1px 0 rgba(0,0,0,.5); }
+html[data-style="block"] .btn-ghost { padding: 10px 16px; background: rgba(0,0,0,.3); box-shadow: inset 2px 2px 0 var(--bevel-hi), inset -2px -2px 0 var(--bevel-lo); }
+html[data-style="block"] .btn-ghost:hover { background: rgba(255,255,255,.08); border-color: var(--ink); }
+.search-box { min-width: 280px; }
+
+/* 7 ── keep decoration out of the way of content: particles live in the gutters, panels are near-solid */
+#bg-canvas { -webkit-mask-image: linear-gradient(90deg, #000 0, rgba(0,0,0,.9) 12%, rgba(0,0,0,.14) 24%, rgba(0,0,0,.14) 76%, rgba(0,0,0,.9) 88%, #000 100%); mask-image: linear-gradient(90deg, #000 0, rgba(0,0,0,.9) 12%, rgba(0,0,0,.14) 24%, rgba(0,0,0,.14) 76%, rgba(0,0,0,.9) 88%, #000 100%); }
+:root { --panel: rgba(8,13,24,.93); }
+html[data-style="block"] .folder-item { background-color: rgba(9,14,26,.92); }
+html[data-style="block"] .folder-item.has-color { background-color: color-mix(in srgb, var(--fc) 9%, rgb(9,14,26)); }
+.search-box { background: rgba(8,13,24,.94); }
+.logo-main { font-size: 17px; letter-spacing: .02em; } .logo-sub { font-size: 11px; }
+
+/* 8 ── Monocraft hygiene: never fake-bold a pixel font (it smears glyphs), buttons must inherit the family */
+[data-font="minecraft"], [data-font="minecraft"] * { font-synthesis: none; }
+.res-sec-head, .nav-btn, button, input, select, textarea { font-family: inherit; }
+/* 8 tabs don't fit on laptops: inactive tabs collapse to icons (titles added in theme.js), the active one keeps its label */
+@media (max-width: 1500px) { .nav-btn:not(.active) span { display: none; } .nav-btn:not(.active) { padding: 10px 12px; } }
