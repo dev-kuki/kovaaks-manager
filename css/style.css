@@ -1152,3 +1152,21 @@ body {
 
 #theme-transparency { width: 100%; accent-color: var(--accent); cursor: pointer; }
 #theme-transparency-val { font-family: var(--mono); color: var(--accent); text-transform: none; }
+
+/* ── folder + playlist colors ── */
+.color-btn { width: 14px; height: 14px; border-radius: 50%; border: 1.5px solid var(--text-3); background: transparent; padding: 0; cursor: pointer; flex-shrink: 0; opacity: 0; transition: opacity .15s, transform .15s; }
+.color-btn.has { background: var(--c); border-color: var(--c); opacity: 1; }
+.color-btn:hover { transform: scale(1.2); }
+.folder-header:hover .color-btn, .playlist-row:hover .color-btn { opacity: 1; }
+.folder-item.has-color { border-left: 3px solid var(--fc); background: color-mix(in srgb, var(--fc) 7%, transparent); }
+.folder-item.has-color > .folder-header .folder-name { color: var(--fc); }
+.playlist-row.has-color { box-shadow: inset 3px 0 0 var(--fc); background: color-mix(in srgb, var(--fc) 8%, transparent); }
+.playlist-row.has-color .pl-name { color: var(--fc); }
+.playlist-row.has-color .pl-dot { background: var(--fc); }
+.color-pop { position: fixed; z-index: 1000; display: grid; grid-template-columns: repeat(5, 24px); gap: 9px; padding: 12px; border-radius: 12px; background: #0b1220; border: 1px solid var(--border); box-shadow: 0 12px 40px rgba(0,0,0,.5); }
+.color-pop .sw { width: 24px; height: 24px; border-radius: 50%; background: var(--c); border: 2px solid transparent; cursor: pointer; padding: 0; }
+.color-pop .sw:hover { transform: scale(1.12); }
+.color-pop .sw.active { border-color: #fff; }
+.color-pop .sw-clear, .color-pop .sw-custom { grid-column: span 5; font: 500 11.5px var(--sans); color: var(--text-2); background: transparent; border: 1px solid var(--border); border-radius: 8px; padding: 5px 8px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; }
+.color-pop .sw-clear:hover, .color-pop .sw-custom:hover { color: var(--text); border-color: var(--text-3); }
+.color-pop input[type=color] { width: 28px; height: 18px; border: 0; padding: 0; background: none; cursor: pointer; }
