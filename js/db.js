@@ -23,8 +23,11 @@ const DB = (() => {
     const { data, error } = await client.from("folders").select("*")
     if (error) throw error; return data
   }
-  async function createFolder(name, color) {
-    const { data, error } = await client.from("folders").insert(color ? { name, color } : { name }).select().single()
+  async function createFolder(name, color, parentId) {
+    const row = { name }
+    if (color) row.color = color
+    if (parentId) row.parent_id = parentId // only sent when set, so old DBs without the column keep working
+    const { data, error } = await client.from("folders").insert(row).select().single()
     if (error) throw error; return data
   }
   async function renameFolder(id, name) {
@@ -36,6 +39,10 @@ const DB = (() => {
     if (error) throw error
   }
   async function reorderFolders(ids) { await bulkPosition("folders", ids) }
+  async function setFolderParent(id, parentId) {
+    const { error } = await client.from("folders").update({ parent_id: parentId || null }).eq("id", id)
+    if (error) throw error
+  }
   async function setFolderColor(id, color) {
     const { error } = await client.from("folders").update({ color: color || null }).eq("id", id)
     if (error) throw error
@@ -198,7 +205,7 @@ const DB = (() => {
 
   return {
     init, ready, ping,
-    getFolders, createFolder, renameFolder, deleteFolder, reorderFolders, setFolderColor, setPlaylistColor,
+    getFolders, createFolder, renameFolder, deleteFolder, reorderFolders, setFolderParent, setFolderColor, setPlaylistColor,
     getAllPlaylists, togglePlaylistPin, uploadPlaylist, updatePlaylist, movePlaylistToFolder, getPlaylistFile, deletePlaylist, getAllPlaylistsWithFiles, reorderPlaylists,
     getScenarioFolders, createScenarioFolder, renameScenarioFolder, deleteScenarioFolder, reorderScenarioFolders,
     getAllScenarios, insertScenario, updateScenario, moveScenarioToFolder, toggleScenarioPin, deleteScenario, reorderScenarios,
