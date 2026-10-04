@@ -297,7 +297,7 @@ body {
   font-size: 12px; color: var(--text-3);
   transition: transform 0.2s; flex-shrink: 0;
 }
-.folder-item.open .folder-chevron { transform: rotate(90deg); }
+.folder-item.open > .folder-header .folder-chevron { transform: rotate(90deg); }
 
 .folder-name { font-size: 13px; font-weight: 600; flex: 1; color: var(--text); }
 .folder-count { font-family: var(--mono); font-size: 10.5px; color: var(--text-3); }
@@ -306,7 +306,7 @@ body {
 .folder-header:hover .folder-del, .folder-header:hover .aim-folder-del, .folder-header:hover [data-folder-rename], .folder-header:hover [data-aim-folder-rename] { opacity: 1; }
 
 .folder-body { display: none; border-top: 1px solid var(--border-soft); }
-.folder-item.open .folder-body { display: block; }
+.folder-item.open > .folder-body { display: block; }
 .folder-item.open { border-color: var(--border); }
 
 /* ── drag & drop ── */
@@ -1170,3 +1170,10 @@ body {
 .color-pop .sw-clear, .color-pop .sw-custom { grid-column: span 5; font: 500 11.5px var(--sans); color: var(--text-2); background: transparent; border: 1px solid var(--border); border-radius: 8px; padding: 5px 8px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; }
 .color-pop .sw-clear:hover, .color-pop .sw-custom:hover { color: var(--text); border-color: var(--text-3); }
 .color-pop input[type=color] { width: 28px; height: 18px; border: 0; padding: 0; background: none; cursor: pointer; }
+
+/* ── nested folders ── */
+.folder-header [data-folder-sub] { opacity: 0; transition: opacity .15s; }
+.folder-header:hover [data-folder-sub] { opacity: 1; }
+.subfolders { display: flex; flex-direction: column; gap: 8px; padding: 10px 10px 8px 22px; }
+.subfolders > .folder-item { box-shadow: none; }
+.subfolders .folder-header { padding: 10px 14px; }
