@@ -1177,3 +1177,85 @@ body {
 .subfolders { display: flex; flex-direction: column; gap: 8px; padding: 10px 10px 8px 22px; }
 .subfolders > .folder-item { box-shadow: none; }
 .subfolders .folder-header { padding: 10px 14px; }
+
+/* ═══════════════════════════════════════════════════════════════
+   v3 — nested-folder fixes + design polish
+   ═══════════════════════════════════════════════════════════════ */
+
+/* BUG FIX: subfolders had `box-shadow:none` which out-ranked the drag indicators, so you
+   couldn't see where a folder would land when dragging inside a nested folder. */
+.folders-list .folder-item.drag-over-top    { box-shadow: 0 -3px 0 0 var(--accent), 0 4px 24px rgba(0,0,0,.18); }
+.folders-list .folder-item.drag-over-bottom { box-shadow: 0 3px 0 0 var(--accent), 0 4px 24px rgba(0,0,0,.18); }
+.folders-list .folder-item.drop-into        { border-color: var(--accent); background: var(--accent-dim); box-shadow: 0 0 0 1px var(--accent), 0 0 24px var(--accent-glow); }
+.folder-item.dragging { opacity: .4; }
+
+/* folder actions: all three are always reachable (the subfolder button was invisible until hover) */
+.folder-header [data-folder-sub],
+.folder-header [data-scenario-folder-sub],
+.folder-header [data-aim-folder-sub],
+.folder-header [data-scenario-folder-rename],
+.folder-header [data-aim-folder-rename] { opacity: .55; transition: opacity .15s, color .15s; }
+.folder-header:hover [data-folder-sub],
+.folder-header:hover [data-scenario-folder-sub],
+.folder-header:hover [data-aim-folder-sub],
+.folder-header:hover [data-scenario-folder-rename],
+.folder-header:hover [data-aim-folder-rename] { opacity: 1; }
+.folder-header [data-folder-sub]:hover,
+.folder-header [data-scenario-folder-sub]:hover,
+.folder-header [data-aim-folder-sub]:hover { color: var(--accent); }
+.folder-header .color-btn { opacity: .55; }
+.folder-header:hover .color-btn { opacity: 1; }
+
+/* nested look: a thin guide line shows which folder you're inside */
+.subfolders { position: relative; padding: 10px 12px 10px 26px; gap: 8px; }
+.subfolders::before { content: ""; position: absolute; left: 13px; top: 10px; bottom: 18px; width: 2px; border-radius: 2px; background: linear-gradient(var(--border), transparent); }
+.subfolders > .folder-item { background: rgba(255,255,255,.02); }
+.folder-body > .playlist-row:first-child, .folder-body > .subfolders + .playlist-row { border-top: 1px solid var(--border-soft); }
+
+/* folder headers: small folder glyph + calmer count pill */
+.folder-item:not([data-folder-id="fav"]):not([data-folder-id="none"]) > .folder-header .folder-name::before {
+  content: ""; display: inline-block; width: 15px; height: 15px; margin-right: 9px; vertical-align: -2px; opacity: .75;
+  background: currentColor;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linejoin='round'%3E%3Cpath d='M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z'/%3E%3C/svg%3E") center/contain no-repeat;
+          mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linejoin='round'%3E%3Cpath d='M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z'/%3E%3C/svg%3E") center/contain no-repeat;
+}
+.folder-count { background: rgba(255,255,255,.05); border: 1px solid var(--border-soft); border-radius: 999px; padding: 1px 9px; color: var(--text-2); }
+.folder-chevron { font-size: 16px; line-height: 1; width: 14px; text-align: center; }
+.folder-item.open > .folder-header { background: rgba(255,255,255,.025); }
+
+/* rows */
+.playlist-row { transition: background .12s; }
+.playlist-row:hover { background: rgba(255,255,255,.035); }
+.playlist-row + .playlist-row { border-top: 1px solid var(--border-soft); }
+.pl-actions, .sc-actions { opacity: .55; transition: opacity .15s; }
+.playlist-row:hover .pl-actions, .scenario-card:hover .sc-actions { opacity: 1; }
+
+/* scenario cards */
+.scenarios-grid { padding: 12px; gap: 10px; }
+.scenario-card { border-radius: var(--r); transition: transform .15s, box-shadow .15s, border-color .15s; }
+.scenario-card:hover { border-color: var(--border); }
+
+/* page header + search */
+.topbar, .view-header { gap: 12px; }
+#search-input:focus, #scenario-search:focus, #aim-search:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-dim); outline: none; }
+
+/* modals: a bit more air and a soft backdrop blur */
+.modal-backdrop { backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); background: rgba(3,6,12,.6); }
+.modal { box-shadow: 0 24px 80px rgba(0,0,0,.55); }
+
+/* drop hint inside empty folders */
+.folder-body .empty-state { color: var(--text-3); border: 1.5px dashed var(--border-soft); border-radius: var(--r); margin: 10px; }
+
+/* nicer scrollbars */
+#main { scrollbar-width: thin; scrollbar-color: rgba(148,172,204,.25) transparent; }
+#main::-webkit-scrollbar { width: 10px; }
+#main::-webkit-scrollbar-thumb { background: rgba(148,172,204,.22); border-radius: 10px; border: 2px solid transparent; background-clip: padding-box; }
+
+/* touch / small screens: nothing hides behind hover */
+@media (hover: none), (max-width: 900px) {
+  .folder-header [data-folder-sub], .folder-header [data-scenario-folder-sub], .folder-header [data-aim-folder-sub],
+  .folder-header [data-folder-rename], .folder-header [data-scenario-folder-rename], .folder-header [data-aim-folder-rename],
+  .folder-header .color-btn, .pl-actions, .sc-actions { opacity: 1; }
+  .view { padding-left: 14px; padding-right: 14px; }
+  .subfolders { padding-left: 16px; }
+}
