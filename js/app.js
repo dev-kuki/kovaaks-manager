@@ -99,20 +99,24 @@
   })
 
   document.getElementById("btn-new-folder").addEventListener("click", () => {
-    UI.openFolderModal(async name => {
+    UI.openFolderModal(async (name, parentId) => {
       if (!DB.ready()) { UI.toast("not connected"); return }
-      try { await DB.createFolder(name); await refresh(); UI.toast(`"${name}" created`) }
-      catch (err) { UI.toast("error: " + err.message) }
-    })
+      try { await DB.createFolder(name, null, parentId); if (parentId) sessionStorage.setItem("fo-" + parentId, "1"); await refresh(); UI.toast(`"${name}" created`) }
+      catch (err) { UI.toast("error: " + err.message + (parentId ? " (subfolders need the parent_id SQL in Settings)" : ""), 4500) }
+    }, null, { parents: UI.folderOptions(folders), parentId: "" })
   })
 
   // drag & drop — optimistic: the UI updates instantly, saving happens in the background (reverts on error)
   UI.wireFolderDragDrop(document.getElementById("folders-container"), {
-    onReorderFolders: async ids => {
-      ids.forEach((id, i) => { const f = folders.find(x => x.id === id); if (f) f.position = i })
+    onMoveFolder: async (id, parentId, ids) => {
+      const f = folders.find(x => x.id === id); if (!f) return
+      const changed = (f.parent_id || null) !== (parentId || null)
+      f.parent_id = parentId || null
+      ids.forEach((fid, i) => { const x = folders.find(y => y.id === fid); if (x) x.position = i })
+      if (parentId) sessionStorage.setItem("fo-" + parentId, "1")
       render()
-      try { await DB.reorderFolders(ids) }
-      catch (err) { UI.toast("couldn't save order — run the SQL migration in Settings. " + err.message); await refresh() }
+      try { if (changed) await DB.setFolderParent(id, parentId); await DB.reorderFolders(ids) }
+      catch (err) { UI.toast("couldn't save — run the SQL migration in Settings (parent_id / position). " + err.message, 4500); await refresh() }
     },
     onDropItem: async (id, targetFolderId, ids) => {
       const folderId = targetFolderId === "none" ? null : targetFolderId
@@ -149,8 +153,7 @@
     if (renameBtn) {
       const id = renameBtn.dataset.folderRename
       const f0 = folders.find(x => x.id === id)
-      const bad = new Set([id]) // a folder can't be moved into itself or its own subfolders
-      for (let grew = true; grew;) { grew = false; folders.forEach(f => { if (f.parent_id && bad.has(f.parent_id) && !bad.has(f.id)) { bad.add(f.id); grew = true } }) }
+      const bad = UI.descendantsOf(folders, id) // a folder can't be moved into itself or its own subfolders
       UI.openFolderModal(async (name, parentId) => {
         try {
           await DB.renameFolder(id, name)
@@ -251,11 +254,11 @@
   })
 
   document.getElementById("btn-new-scenario-folder").addEventListener("click", () => {
-    UI.openFolderModal(async name => {
+    UI.openFolderModal(async (name, parentId) => {
       if (!DB.ready()) { UI.toast("not connected"); return }
-      try { await DB.createScenarioFolder(name); await refresh(); UI.toast(`"${name}" created`) }
-      catch (err) { UI.toast("couldn't create folder — run the scenario_folders SQL migration in Settings. " + err.message) }
-    })
+      try { await DB.createScenarioFolder(name, null, parentId); if (parentId) sessionStorage.setItem("sfo-" + parentId, "1"); await refresh(); UI.toast(`"${name}" created`) }
+      catch (err) { UI.toast("couldn't create folder — run the scenario folders SQL in Settings. " + err.message, 4500) }
+    }, null, { parents: UI.folderOptions(scenarioFolders), parentId: "" })
   })
 
   document.getElementById("btn-add-scenario").addEventListener("click", () => {
@@ -270,11 +273,15 @@
 
   UI.wireFolderDragDrop(document.getElementById("scenarios-container"), {
     itemSelector: ".scenario-card", dataKey: "scenarioId",
-    onReorderFolders: async ids => {
-      ids.forEach((id, i) => { const f = scenarioFolders.find(x => x.id === id); if (f) f.position = i })
+    onMoveFolder: async (id, parentId, ids) => {
+      const f = scenarioFolders.find(x => x.id === id); if (!f) return
+      const changed = (f.parent_id || null) !== (parentId || null)
+      f.parent_id = parentId || null
+      ids.forEach((fid, i) => { const x = scenarioFolders.find(y => y.id === fid); if (x) x.position = i })
+      if (parentId) sessionStorage.setItem("sfo-" + parentId, "1")
       render()
-      try { await DB.reorderScenarioFolders(ids) }
-      catch (err) { UI.toast("couldn't save order — run the SQL migration in Settings. " + err.message); await refresh() }
+      try { if (changed) await DB.setScenarioFolderParent(id, parentId); await DB.reorderScenarioFolders(ids) }
+      catch (err) { UI.toast("couldn't save — run the scenario folders SQL in Settings (parent_id). " + err.message, 4500); await refresh() }
     },
     onDropItem: async (id, targetFolderId, ids) => {
       const folderId = targetFolderId === "none" ? null : targetFolderId
@@ -298,19 +305,33 @@
       catch (err) { sc.pinned = !sc.pinned; render(); UI.toast("couldn't favorite — run the SQL migration in Settings (pinned column). " + err.message) }
       return
     }
+    const subBtn = e.target.closest("[data-scenario-folder-sub]")
+    if (subBtn) {
+      const pid = subBtn.dataset.scenarioFolderSub, pf = scenarioFolders.find(x => x.id === pid)
+      UI.openFolderModal(async name => {
+        try { await DB.createScenarioFolder(name, null, pid); sessionStorage.setItem("sfo-" + pid, "1"); await refresh(); UI.toast(`"${name}" created inside "${pf ? pf.name : "folder"}"`) }
+        catch (err) { UI.toast("couldn't create subfolder — run the scenario folders SQL in Settings. " + err.message, 4500) }
+      }, null, { title: "New subfolder" })
+      return
+    }
     const renameBtn = e.target.closest("[data-scenario-folder-rename]")
     if (renameBtn) {
       const id = renameBtn.dataset.scenarioFolderRename
-      UI.openFolderModal(async name => {
-        try { await DB.renameScenarioFolder(id, name); await refresh(); UI.toast(`renamed to "${name}"`) }
-        catch (err) { UI.toast("error: " + err.message) }
-      }, { name: renameBtn.dataset.folderName })
+      const f0 = scenarioFolders.find(x => x.id === id)
+      const bad = UI.descendantsOf(scenarioFolders, id)
+      UI.openFolderModal(async (name, parentId) => {
+        try {
+          await DB.renameScenarioFolder(id, name)
+          if (parentId !== undefined && (parentId || null) !== ((f0 && f0.parent_id) || null)) await DB.setScenarioFolderParent(id, parentId)
+          await refresh(); UI.toast(`"${name}" saved`)
+        } catch (err) { UI.toast("error: " + err.message + " (moving folders needs the scenario folders SQL in Settings)", 4500) }
+      }, { name: renameBtn.dataset.folderName }, { parents: UI.folderOptions(scenarioFolders).filter(o => !bad.has(o.id)), parentId: (f0 && f0.parent_id) || "" })
       return
     }
     if (e.target.closest(".folder-del")) {
       const id = e.target.closest("[data-scenario-folder-id]").dataset.scenarioFolderId
       const f = scenarioFolders.find(x => x.id === id)
-      if (!f || !confirm(`Delete folder "${f.name}"?\nScenarios will become unsorted.`)) return
+      if (!f || !confirm(`Delete folder "${f.name}"?\nScenarios will become unsorted and any subfolders move to the top level.`)) return
       try { await DB.deleteScenarioFolder(id); await refresh(); UI.toast(`"${f.name}" deleted`) }
       catch (err) { UI.toast("error: " + err.message) }
       return
@@ -337,11 +358,17 @@
   // ── colors: folders + playlists ──
   document.addEventListener("color-pick", async e => {
     const { kind, id, color } = e.detail
-    const item = (kind === "folder" ? folders : playlists).find(x => x.id === id); if (!item) return
+    const map = {
+      folder:   [() => folders,         DB.setFolderColor,         render],
+      playlist: [() => playlists,       DB.setPlaylistColor,       render],
+      sfolder:  [() => scenarioFolders, DB.setScenarioFolderColor, render],
+    }
+    const entry = map[kind]; if (!entry) return // "afolder" (Aimbeast) is handled in sens.js
+    const item = entry[0]().find(x => x.id === id); if (!item) return
     const prev = item.color || null
     item.color = color || null; render()
-    try { await (kind === "folder" ? DB.setFolderColor(id, color) : DB.setPlaylistColor(id, color)) }
-    catch (err) { item.color = prev; render(); UI.toast("couldn't save color — run the color SQL migration in Settings. " + err.message, 4500) }
+    try { await entry[1](id, color) }
+    catch (err) { item.color = prev; render(); UI.toast("couldn't save color — run the color SQL in Settings. " + err.message, 4500) }
   })
 
   // ── export / import ──
@@ -369,9 +396,13 @@
     if (!DB.ready()) { UI.setFeedback("export-feedback", "not connected", true); return }
     UI.setFeedback("export-feedback", "building zip…")
     try {
-      const [allFolders, allPlaylists] = await Promise.all([DB.getFolders(), DB.getAllPlaylistsWithFiles()])
+      const [allFolders, allPlaylists, allScFolders, allScenarios, allAimFolders, allAim] = await Promise.all([
+        DB.getFolders(), DB.getAllPlaylistsWithFiles(),
+        DB.getScenarioFolders().catch(() => []), DB.getAllScenarios().catch(() => []),
+        DB.getAimFolders().catch(() => []), DB.getAllAimPlaylists().catch(() => []),
+      ])
       const zip = new JSZip()
-      const manifest = { folders: allFolders, playlists: [] }
+      const manifest = { folders: allFolders, playlists: [], scenarioFolders: allScFolders, scenarios: allScenarios, aimFolders: allAimFolders, aimPlaylists: allAim }
 
       allPlaylists.forEach(p => {
         const filename = `playlists/${p.id}.json`
@@ -383,14 +414,14 @@
       const blob = await zip.generateAsync({ type: "blob" })
       const a = Object.assign(document.createElement("a"), { href: URL.createObjectURL(blob), download: `kovaaks-library-${new Date().toISOString().slice(0,10)}.zip` })
       a.click(); URL.revokeObjectURL(a.href)
-      UI.setFeedback("export-feedback", `exported ${allPlaylists.length} playlists ✓`)
+      UI.setFeedback("export-feedback", `exported ${allPlaylists.length} playlists, ${allScenarios.length} scenarios, ${allAim.length} Aimbeast playlists ✓`)
     } catch (err) { UI.setFeedback("export-feedback", err.message, true) }
   })
 
   importBtn.addEventListener("click", async () => {
     if (!DB.ready()) { UI.setFeedback("import-feedback", "not connected", true); return }
     const file = importFileInput.files[0]; if (!file) return
-    if (!confirm("This will import all folders and playlists from the zip. Existing data won't be deleted. Continue?")) return
+    if (!confirm("This will import all folders, playlists, scenarios and Aimbeast playlists from the zip. Existing data won't be deleted. Continue?")) return
     UI.setFeedback("import-feedback", "importing…"); importBtn.disabled = true
     try {
       const zip = await JSZip.loadAsync(file)
@@ -398,15 +429,17 @@
       if (!manifestFile) throw new Error("no manifest.json found — is this a valid export?")
       const manifest = JSON.parse(await manifestFile.async("string"))
 
-      // create folders and build id map
-      const folderMap = {}
-      for (const f of manifest.folders) {
-        const created = await DB.createFolder(f.name, f.color)
-        folderMap[f.id] = created.id
+      // folders first (so ids can be mapped), then nesting, in the order they were exported
+      async function importTree(list, create, setParent) {
+        const map = {}
+        for (const f of (list || []).slice().sort(UI.byOrder)) map[f.id] = (await create(f)).id
+        for (const f of list || []) if (f.parent_id && map[f.parent_id]) await setParent(map[f.id], map[f.parent_id])
+        return map
       }
-      for (const f of manifest.folders) if (f.parent_id && folderMap[f.parent_id]) await DB.setFolderParent(folderMap[f.id], folderMap[f.parent_id])
+      const folderMap = await importTree(manifest.folders, f => DB.createFolder(f.name, f.color), DB.setFolderParent)
+      const scMap = await importTree(manifest.scenarioFolders, f => DB.createScenarioFolder(f.name, f.color), DB.setScenarioFolderParent)
+      const aimMap = await importTree(manifest.aimFolders, f => DB.createAimFolder(f.name, f.color), DB.setAimFolderParent)
 
-      // upload playlists
       let count = 0
       for (const p of manifest.playlists) {
         const jsonFile = zip.file(p.file)
@@ -414,9 +447,15 @@
         await DB.uploadPlaylist({ name: p.name, folderId: folderMap[p.folder_id]||null, gameTag: p.game_tag, notes: p.notes, shareCode: p.share_code, fileData, color: p.color })
         count++
       }
+      for (const sc of manifest.scenarios || []) {
+        await DB.insertScenario({ name: sc.name, shareCode: sc.share_code, gameTag: sc.game_tag, notes: sc.notes, folderId: scMap[sc.folder_id] || null }); count++
+      }
+      for (const ap of manifest.aimPlaylists || []) {
+        await DB.uploadAimPlaylist({ name: ap.name, folderId: aimMap[ap.folder_id] || null, gameTag: ap.game_tag, notes: ap.notes, workshopUrl: ap.workshop_url, playlistCode: ap.playlist_code }); count++
+      }
 
       await refresh()
-      UI.setFeedback("import-feedback", `imported ${count} playlists ✓`)
+      UI.setFeedback("import-feedback", `imported ${count} items ✓`)
     } catch (err) { UI.setFeedback("import-feedback", err.message, true) }
     finally { importBtn.disabled = false }
   })
