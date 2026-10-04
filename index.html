@@ -404,6 +404,8 @@ create table if not exists aimbeast_playlists (
 );</code></pre>
               <p style="margin-top:2px">Already have these tables from an older version? Run this too — it's safe to run more than once and won't touch existing data:</p>
               <pre><code>alter table folders add column if not exists position integer;
+alter table folders add column if not exists color text;
+alter table playlists add column if not exists color text;
 alter table playlists add column if not exists pinned boolean default false;
 alter table playlists add column if not exists position integer;
 alter table scenarios add column if not exists pinned boolean default false;
