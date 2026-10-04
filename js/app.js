@@ -18,6 +18,7 @@
     document.getElementById("main").scrollTop = 0
     if (name === "sens") initSens()
     if (name === "aimbeast") initAimbeast()
+    if (name === "resources") Resources.init()
   }
   document.querySelectorAll(".nav-btn").forEach(btn => btn.addEventListener("click", () => showView(btn.dataset.view)))
 
@@ -51,7 +52,7 @@
       localStorage.setItem("sb-url", url); localStorage.setItem("sb-key", key)
       UI.setStatus("connected")
       if (!silent) UI.setFeedback("settings-feedback", "connected ✓")
-      await refresh(); initSens(); initAimbeast()
+      await refresh(); initSens(); initAimbeast(); Resources.init(true)
       if (!silent) showView("playlists")
     } catch (err) { UI.setStatus("disconnected"); UI.setFeedback("settings-feedback", err.message, true); if (silent) showView("settings") }
   }
