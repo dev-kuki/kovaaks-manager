@@ -136,19 +136,34 @@
       catch (err) { pl.pinned = !pl.pinned; render(); UI.toast("couldn't favorite — run the SQL migration in Settings (pinned column). " + err.message) }
       return
     }
+    const subBtn = e.target.closest("[data-folder-sub]")
+    if (subBtn) {
+      const pid = subBtn.dataset.folderSub, pf = folders.find(x => x.id === pid)
+      UI.openFolderModal(async name => {
+        try { await DB.createFolder(name, null, pid); sessionStorage.setItem("fo-" + pid, "1"); await refresh(); UI.toast(`"${name}" created inside "${pf ? pf.name : "folder"}"`) }
+        catch (err) { UI.toast("couldn't create subfolder — run the parent_id SQL in Settings. " + err.message, 4500) }
+      }, null, { title: "New subfolder" })
+      return
+    }
     const renameBtn = e.target.closest("[data-folder-rename]")
     if (renameBtn) {
       const id = renameBtn.dataset.folderRename
-      UI.openFolderModal(async name => {
-        try { await DB.renameFolder(id, name); await refresh(); UI.toast(`renamed to "${name}"`) }
-        catch (err) { UI.toast("error: " + err.message) }
-      }, { name: renameBtn.dataset.folderName })
+      const f0 = folders.find(x => x.id === id)
+      const bad = new Set([id]) // a folder can't be moved into itself or its own subfolders
+      for (let grew = true; grew;) { grew = false; folders.forEach(f => { if (f.parent_id && bad.has(f.parent_id) && !bad.has(f.id)) { bad.add(f.id); grew = true } }) }
+      UI.openFolderModal(async (name, parentId) => {
+        try {
+          await DB.renameFolder(id, name)
+          if (parentId !== undefined && (parentId || null) !== ((f0 && f0.parent_id) || null)) await DB.setFolderParent(id, parentId)
+          await refresh(); UI.toast(`"${name}" saved`)
+        } catch (err) { UI.toast("error: " + err.message + " (moving folders needs the parent_id SQL in Settings)", 4500) }
+      }, { name: renameBtn.dataset.folderName }, { parents: UI.folderOptions(folders).filter(o => !bad.has(o.id)), parentId: (f0 && f0.parent_id) || "" })
       return
     }
     if (e.target.closest(".folder-del")) {
       const id = e.target.closest("[data-folder-id]").dataset.folderId
       const f = folders.find(x => x.id === id)
-      if (!f || !confirm(`Delete folder "${f.name}"?\nPlaylists will become unsorted.`)) return
+      if (!f || !confirm(`Delete folder "${f.name}"?\nPlaylists will become unsorted and any subfolders move to the top level.`)) return
       try { await DB.deleteFolder(id); await refresh(); UI.toast(`"${f.name}" deleted`) }
       catch (err) { UI.toast("error: " + err.message) }
       return
@@ -389,6 +404,7 @@
         const created = await DB.createFolder(f.name, f.color)
         folderMap[f.id] = created.id
       }
+      for (const f of manifest.folders) if (f.parent_id && folderMap[f.parent_id]) await DB.setFolderParent(folderMap[f.id], folderMap[f.parent_id])
 
       // upload playlists
       let count = 0
