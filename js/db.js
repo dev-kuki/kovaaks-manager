@@ -11,9 +11,11 @@ const DB = (() => {
 
   // generic — writes 0..n-1 as `position` for a list of ids, in the order given
   async function bulkPosition(table, ids) {
-    const results = await Promise.all(ids.map((id, i) => client.from(table).update({ position: i }).eq("id", id)))
-    const failed = results.find(r => r.error)
-    if (failed) throw failed.error
+    for (let i = 0; i < ids.length; i += 20) {
+      const results = await Promise.all(ids.slice(i, i + 20).map((id, j) => client.from(table).update({ position: i + j }).eq("id", id)))
+      const failed = results.find(r => r.error)
+      if (failed) throw failed.error
+    }
   }
 
   // folders
@@ -96,9 +98,20 @@ const DB = (() => {
     const { data, error } = await client.from("scenario_folders").select("*")
     if (error) throw error; return data
   }
-  async function createScenarioFolder(name) {
-    const { data, error } = await client.from("scenario_folders").insert({ name }).select().single()
+  async function createScenarioFolder(name, color, parentId) {
+    const row = { name }
+    if (color) row.color = color
+    if (parentId) row.parent_id = parentId
+    const { data, error } = await client.from("scenario_folders").insert(row).select().single()
     if (error) throw error; return data
+  }
+  async function setScenarioFolderParent(id, parentId) {
+    const { error } = await client.from("scenario_folders").update({ parent_id: parentId || null }).eq("id", id)
+    if (error) throw error
+  }
+  async function setScenarioFolderColor(id, color) {
+    const { error } = await client.from("scenario_folders").update({ color: color || null }).eq("id", id)
+    if (error) throw error
   }
   async function renameScenarioFolder(id, name) {
     const { error } = await client.from("scenario_folders").update({ name }).eq("id", id)
@@ -137,6 +150,10 @@ const DB = (() => {
     const { error } = await client.from("scenarios").delete().eq("id", id)
     if (error) throw error
   }
+  async function createScenarioFull(row) {
+    const { data, error } = await client.from("scenarios").insert(row).select().single()
+    if (error) throw error; return data
+  }
   async function reorderScenarios(ids) { await bulkPosition("scenarios", ids) }
 
   // sens
@@ -162,9 +179,20 @@ const DB = (() => {
     const { data, error } = await client.from("aimbeast_folders").select("*")
     if (error) throw error; return data
   }
-  async function createAimFolder(name) {
-    const { data, error } = await client.from("aimbeast_folders").insert({ name }).select().single()
+  async function createAimFolder(name, color, parentId) {
+    const row = { name }
+    if (color) row.color = color
+    if (parentId) row.parent_id = parentId
+    const { data, error } = await client.from("aimbeast_folders").insert(row).select().single()
     if (error) throw error; return data
+  }
+  async function setAimFolderParent(id, parentId) {
+    const { error } = await client.from("aimbeast_folders").update({ parent_id: parentId || null }).eq("id", id)
+    if (error) throw error
+  }
+  async function setAimFolderColor(id, color) {
+    const { error } = await client.from("aimbeast_folders").update({ color: color || null }).eq("id", id)
+    if (error) throw error
   }
   async function renameAimFolder(id, name) {
     const { error } = await client.from("aimbeast_folders").update({ name }).eq("id", id)
@@ -207,10 +235,10 @@ const DB = (() => {
     init, ready, ping,
     getFolders, createFolder, renameFolder, deleteFolder, reorderFolders, setFolderParent, setFolderColor, setPlaylistColor,
     getAllPlaylists, togglePlaylistPin, uploadPlaylist, updatePlaylist, movePlaylistToFolder, getPlaylistFile, deletePlaylist, getAllPlaylistsWithFiles, reorderPlaylists,
-    getScenarioFolders, createScenarioFolder, renameScenarioFolder, deleteScenarioFolder, reorderScenarioFolders,
-    getAllScenarios, insertScenario, updateScenario, moveScenarioToFolder, toggleScenarioPin, deleteScenario, reorderScenarios,
+    getScenarioFolders, createScenarioFolder, renameScenarioFolder, deleteScenarioFolder, reorderScenarioFolders, setScenarioFolderParent, setScenarioFolderColor,
+    getAllScenarios, insertScenario, createScenarioFull, updateScenario, moveScenarioToFolder, toggleScenarioPin, deleteScenario, reorderScenarios,
     getSens, upsertSens, addSensType, deleteSensType,
-    getAimFolders, createAimFolder, renameAimFolder, deleteAimFolder, reorderAimFolders,
+    getAimFolders, createAimFolder, renameAimFolder, deleteAimFolder, reorderAimFolders, setAimFolderParent, setAimFolderColor,
     getAllAimPlaylists, uploadAimPlaylist, updateAimPlaylist, toggleAimPlaylistPin, movePlaylistToAimFolder, deleteAimPlaylist, reorderAimPlaylists,
   }
 })()
