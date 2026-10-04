@@ -175,6 +175,21 @@ const DB = (() => {
   }
 
   // aimbeast folders
+  async function getResources() {
+    const { data, error } = await client.from("resources").select("*"); if (error) throw error; return data
+  }
+  async function insertResource(row) {
+    const { data, error } = await client.from("resources").insert(row).select().single(); if (error) throw error; return data
+  }
+  async function insertResources(rows) {
+    const { data, error } = await client.from("resources").insert(rows).select(); if (error) throw error; return data
+  }
+  async function updateResource(id, fields) {
+    const { error } = await client.from("resources").update(fields).eq("id", id); if (error) throw error
+  }
+  async function deleteResource(id) {
+    const { error } = await client.from("resources").delete().eq("id", id); if (error) throw error
+  }
   async function getAimFolders() {
     const { data, error } = await client.from("aimbeast_folders").select("*")
     if (error) throw error; return data
@@ -238,6 +253,7 @@ const DB = (() => {
     getScenarioFolders, createScenarioFolder, renameScenarioFolder, deleteScenarioFolder, reorderScenarioFolders, setScenarioFolderParent, setScenarioFolderColor,
     getAllScenarios, insertScenario, createScenarioFull, updateScenario, moveScenarioToFolder, toggleScenarioPin, deleteScenario, reorderScenarios,
     getSens, upsertSens, addSensType, deleteSensType,
+    getResources, insertResource, insertResources, updateResource, deleteResource,
     getAimFolders, createAimFolder, renameAimFolder, deleteAimFolder, reorderAimFolders, setAimFolderParent, setAimFolderColor,
     getAllAimPlaylists, uploadAimPlaylist, updateAimPlaylist, toggleAimPlaylistPin, movePlaylistToAimFolder, deleteAimPlaylist, reorderAimPlaylists,
   }
