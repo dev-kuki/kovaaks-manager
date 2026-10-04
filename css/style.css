@@ -1259,3 +1259,73 @@ body {
   .view { padding-left: 14px; padding-right: 14px; }
   .subfolders { padding-left: 16px; }
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   v4 — fonts, blocky style, motion, animated background, settings
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Minecraft font: drop Monocraft.ttf into /fonts (see README). Until then it falls back to Press Start 2P. */
+@font-face { font-family: "Monocraft"; src: url("../fonts/Monocraft.ttf") format("truetype"); font-display: swap; }
+[data-font="minecraft"] { --sans: "Monocraft", "Press Start 2P", ui-monospace, monospace; --mono: "Monocraft", "Press Start 2P", ui-monospace, monospace; }
+[data-font="minecraft"] body { font-size: 13px; letter-spacing: .01em; -webkit-font-smoothing: none; font-smooth: never; }
+[data-font="minecraft"] .folder-name, [data-font="minecraft"] .pl-name { font-weight: 400; }
+
+/* background layers */
+#bg-canvas { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
+#app { position: relative; z-index: 1; }
+[data-bg="grid"] body::before { content: ""; position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background-image: linear-gradient(var(--border-soft) 1px, transparent 1px), linear-gradient(90deg, var(--border-soft) 1px, transparent 1px);
+  background-size: 32px 32px; animation: gridDrift 14s linear infinite; }
+@keyframes gridDrift { to { background-position: 32px 32px; } }
+
+/* BLOCKY style: square corners, solid edges, hard shadows, no glow / blur / gradients */
+[data-style="block"] { --r: 0px; --r-sm: 0px; }
+[data-style="block"] *:not(.conn-dot):not(.pl-dot):not(.theme-swatch):not(.color-btn):not(.sw):not(input[type=range]) { border-radius: 0 !important; }
+[data-style="block"] * { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; text-shadow: none !important; }
+[data-style="block"] body { background: var(--bg); }
+[data-style="block"] .folder-item { border: 2px solid var(--border); box-shadow: 4px 4px 0 rgba(0,0,0,.4); background: color-mix(in srgb, var(--surface) 100%, #0a0f1a); }
+[data-style="block"] .subfolders > .folder-item { box-shadow: 3px 3px 0 rgba(0,0,0,.3); }
+[data-style="block"] .folder-item.has-color { border-left-width: 6px; }
+[data-style="block"] .aside-card, [data-style="block"] .form-card, [data-style="block"] .scenario-card { border: 2px solid var(--border); box-shadow: 4px 4px 0 rgba(0,0,0,.4); }
+[data-style="block"] .modal { border: 2px solid var(--border); box-shadow: 8px 8px 0 rgba(0,0,0,.55); }
+[data-style="block"] .logo-icon { box-shadow: 3px 3px 0 rgba(0,0,0,.5); background: var(--accent); }
+[data-style="block"] .btn-primary, [data-style="block"] .timer-btn-main { background: var(--accent); border: 2px solid rgba(0,0,0,.45); box-shadow: 0 4px 0 rgba(0,0,0,.5); transition: transform .06s, box-shadow .06s; }
+[data-style="block"] .btn-primary:hover, [data-style="block"] .timer-btn-main:hover { background: var(--accent); filter: brightness(1.1); transform: none; }
+[data-style="block"] .btn-primary:active, [data-style="block"] .timer-btn-main:active { transform: translateY(3px); box-shadow: 0 1px 0 rgba(0,0,0,.5); }
+[data-style="block"] .btn-ghost { border: 2px solid var(--border); }
+[data-style="block"] .nav-btn.active { box-shadow: inset 0 -3px 0 var(--accent); background: var(--accent-dim); }
+[data-style="block"] .folder-count { border-width: 2px; }
+[data-style="block"] input, [data-style="block"] select, [data-style="block"] textarea { border-width: 2px; }
+[data-style="block"] .scenario-card:hover { transform: translate(-2px,-2px); box-shadow: 6px 6px 0 rgba(0,0,0,.45); }
+[data-style="block"] .toast, [data-style="block"] #toast { border: 2px solid var(--border); box-shadow: 4px 4px 0 rgba(0,0,0,.5); }
+
+/* DENSITY */
+[data-density="compact"] .folder-header { padding: 8px 12px; }
+[data-density="compact"] .playlist-row { padding: 6px 12px; }
+[data-density="compact"] .subfolders { padding-top: 6px; padding-bottom: 6px; gap: 5px; }
+
+/* MOTION */
+.folder-item.open > .folder-body { animation: bodyIn .18s ease-out; transform-origin: top; }
+@keyframes bodyIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+.folder-item.open > .folder-body > .playlist-row, .folder-item.open > .folder-body > .subfolders > .folder-item { animation: rowIn .22s ease-out backwards; }
+.folder-item.open > .folder-body > .playlist-row:nth-child(2) { animation-delay: .02s } .folder-item.open > .folder-body > .playlist-row:nth-child(3) { animation-delay: .04s }
+.folder-item.open > .folder-body > .playlist-row:nth-child(4) { animation-delay: .06s } .folder-item.open > .folder-body > .playlist-row:nth-child(n+5) { animation-delay: .08s }
+@keyframes rowIn { from { opacity: 0; transform: translateX(-8px); } to { opacity: 1; transform: none; } }
+.view.active { animation: viewIn .22s ease-out; }
+@keyframes viewIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.modal { animation: modalIn .16s steps(4, end); }
+@keyframes modalIn { from { opacity: 0; transform: scale(.94); } to { opacity: 1; transform: none; } }
+.btn-star:active svg { animation: starPop .25s ease-out; }
+@keyframes starPop { 50% { transform: scale(1.5) rotate(15deg); } }
+[data-motion="calm"] * { animation-duration: .08s !important; }
+[data-motion="off"] *, [data-motion="off"] *::before, [data-motion="off"] *::after { animation: none !important; transition: none !important; }
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+
+/* Settings segmented controls */
+.seg { display: inline-flex; border: 2px solid var(--border); }
+.seg button { background: transparent; color: var(--text-2); border: 0; padding: 7px 14px; font: inherit; font-size: 12.5px; cursor: pointer; }
+.seg button + button { border-left: 2px solid var(--border); }
+.seg button:hover { color: var(--text); background: var(--surface-2); }
+.seg button.active { background: var(--accent); color: var(--on-accent); }
+[data-style="soft"] .seg, [data-style="soft"] .seg button { border-radius: 8px; }
+[data-style="soft"] .seg { overflow: hidden; }
