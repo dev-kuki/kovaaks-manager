@@ -405,6 +405,7 @@ create table if not exists aimbeast_playlists (
               <p style="margin-top:2px">Already have these tables from an older version? Run this too — it's safe to run more than once and won't touch existing data:</p>
               <pre><code>alter table folders add column if not exists position integer;
 alter table folders add column if not exists color text;
+alter table folders add column if not exists parent_id uuid references folders(id) on delete set null;
 alter table playlists add column if not exists color text;
 alter table playlists add column if not exists pinned boolean default false;
 alter table playlists add column if not exists position integer;
@@ -460,6 +461,10 @@ alter table aimbeast_playlists add column if not exists position integer;</code>
       <div class="field">
         <label for="folder-name-input">Folder name</label>
         <input type="text" id="folder-name-input" placeholder="e.g. CS2 Routines" />
+      </div>
+      <div class="field" id="folder-parent-field" style="display:none">
+        <label for="folder-parent-select">Inside</label>
+        <select id="folder-parent-select"></select>
       </div>
       <div class="modal-actions">
         <button class="btn-ghost" id="modal-cancel">Cancel</button>
