@@ -31,7 +31,7 @@ const Background = (() => {
       document.addEventListener("visibilitychange", () => { cancelAnimationFrame(raf); if (!document.hidden && mode !== "off") frame() })
     }
     cancelAnimationFrame(raf)
-    mode = (reduce || motion === "off" || m === "grid" || m === "off") ? "off" : m
+    mode = (reduce || motion === "off" || m === "grid" || m === "aurora" || m === "off") ? "off" : m
     speed = motion === "calm" ? 0.5 : 1
     cv.style.display = mode === "off" ? "none" : ""
     if (mode !== "off") { size(); frame() }
