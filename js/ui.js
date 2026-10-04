@@ -26,13 +26,38 @@ const UI = (() => {
     return pa - pb || String(a.name).localeCompare(String(b.name))
   }
 
+  // Builds the folder tree. Safe against broken data: a folder whose parent is missing,
+  // itself, or part of a loop (A inside B inside A) is shown at the top level instead of
+  // silently vanishing from the page.
+  function buildTree(folders) {
+    const byId = new Map(folders.map(f => [f.id, f])), parentOf = {}
+    folders.forEach(f => { parentOf[f.id] = f.parent_id && f.parent_id !== f.id && byId.has(f.parent_id) ? f.parent_id : null })
+    folders.forEach(f => {
+      const seen = new Set([f.id]); let cur = parentOf[f.id]
+      while (cur) {
+        if (cur === f.id) { parentOf[f.id] = null; break }
+        if (seen.has(cur)) break
+        seen.add(cur); cur = parentOf[cur]
+      }
+    })
+    const kidsOf = {}
+    folders.forEach(f => { const k = parentOf[f.id] || "root"; (kidsOf[k] = kidsOf[k] || []).push(f) })
+    Object.values(kidsOf).forEach(l => l.sort(byOrder))
+    return { kidsOf, parentOf }
+  }
+
+  // a folder plus everything nested under it (what it can't be moved into)
+  function descendantsOf(folders, id) {
+    const { kidsOf } = buildTree(folders), out = new Set([id])
+    ;(function walk(k) { (kidsOf[k] || []).forEach(c => { if (!out.has(c.id)) { out.add(c.id); walk(c.id) } }) })(id)
+    return out
+  }
+
   // folders flattened in tree order, with "Parent / Child" labels (flat lists just come out in order)
   function folderOptions(folders) {
-    const ids = new Set(folders.map(f => f.id)), kids = {}
-    folders.forEach(f => { const k = f.parent_id && f.parent_id !== f.id && ids.has(f.parent_id) ? f.parent_id : "root"; (kids[k] = kids[k] || []).push(f) })
-    const out = []
+    const { kidsOf } = buildTree(folders), out = []
     ;(function walk(key, path, depth) {
-      (kids[key] || []).slice().sort(byOrder).forEach(f => { const label = path ? path + " / " + f.name : f.name; out.push({ id: f.id, label, name: f.name, depth }); walk(f.id, label, depth + 1) })
+      (kidsOf[key] || []).forEach(f => { const label = path ? path + " / " + f.name : f.name; out.push({ id: f.id, label, name: f.name, depth }); walk(f.id, label, depth + 1) })
     })("root", "", 0)
     return out
   }
@@ -47,6 +72,10 @@ const UI = (() => {
   }
 
   const dragHandleSvg = `<span class="drag-handle" draggable="true" title="Drag to reorder"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.4"/><circle cx="15" cy="6" r="1.4"/><circle cx="9" cy="12" r="1.4"/><circle cx="15" cy="12" r="1.4"/><circle cx="9" cy="18" r="1.4"/><circle cx="15" cy="18" r="1.4"/></svg></span>`
+
+  const ICON_SUBFOLDER = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/><line x1="12" y1="11" x2="12" y2="17"/><line x1="9" y1="14" x2="15" y2="14"/></svg>`
+  const ICON_EDIT = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`
+  const ICON_TRASH = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>`
 
   function matches(p, q) {
     return !q || [p.name, p.game_tag, p.notes, p.share_code].some(v => (v || "").toLowerCase().includes(q))
@@ -71,10 +100,7 @@ const UI = (() => {
     const list = document.createElement("div"); list.className = "folders-list"
     const favs = visible.filter(p => p.pinned).sort(byOrder)
     if (favs.length) list.appendChild(makeFolderEl({ id: "fav", name: "★ Favorites" }, favs, "fav"))
-    // nested folders: a folder whose parent is missing/invalid is treated as top-level
-    const idSet = new Set(folders.map(f => f.id)), kidsOf = {}
-    folders.forEach(f => { const pk = f.parent_id && f.parent_id !== f.id && idSet.has(f.parent_id) ? f.parent_id : "root"; (kidsOf[pk] = kidsOf[pk] || []).push(f) })
-    Object.values(kidsOf).forEach(l => l.sort(byOrder))
+    const { kidsOf } = buildTree(folders)
     const total = f => (byFolder[f.id] || []).length + (kidsOf[f.id] || []).reduce((n, k) => n + total(k), 0)
     const ctx = { kidsOf, byFolder, total, query }
     ;(kidsOf.root || []).forEach(f => { if (query && !total(f)) return; list.appendChild(makeFolderEl(f, byFolder[f.id] || [], "", ctx)) })
@@ -181,14 +207,17 @@ const UI = (() => {
     const list = document.createElement("div"); list.className = "folders-list"
     const favs = visible.filter(s => s.pinned).sort(byOrder)
     if (favs.length) list.appendChild(makeScenarioFolderEl({ id: "fav", name: "★ Favorites" }, favs, "fav"))
-    folders.slice().sort(byOrder).forEach(f => { const items = byFolder[f.id] || []; if (query && !items.length) return; list.appendChild(makeScenarioFolderEl(f, items)) })
+    const { kidsOf } = buildTree(folders)
+    const total = f => (byFolder[f.id] || []).length + (kidsOf[f.id] || []).reduce((n, k) => n + total(k), 0)
+    const ctx = { kidsOf, byFolder, total, query }
+    ;(kidsOf.root || []).forEach(f => { if (query && !total(f)) return; list.appendChild(makeScenarioFolderEl(f, byFolder[f.id] || [], "", ctx)) })
     if (unassigned.length || (!query && folders.length)) list.appendChild(makeScenarioFolderEl({ id: "none", name: "Unsorted" }, unassigned, "ghost"))
     if (!list.children.length) { container.innerHTML = `<div class="empty-state"><div class="empty-glyph">◻</div><p>No results for "${esc(query)}"</p></div>`; return }
     container.appendChild(list)
   }
 
   // mode: "" = real folder, "ghost" = Unsorted, "fav" = Favorites
-  function makeScenarioFolderEl(folder, scenarios, mode = "") {
+  function makeScenarioFolderEl(folder, scenarios, mode = "", ctx = null) {
     const el = document.createElement("div"); el.className = "folder-item"; el.dataset.folderId = folder.id
     const key = "sfo-" + folder.id
     const stored = sessionStorage.getItem(key)
@@ -200,24 +229,29 @@ const UI = (() => {
         ${real ? dragHandleSvg : `<span class="drag-handle-spacer"></span>`}
         <span class="folder-chevron">›</span>
         <span class="folder-name">${esc(folder.name)}</span>
-        <span class="folder-count">${scenarios.length}</span>
-        ${real ? `<button class="btn-edit" data-scenario-folder-rename="${folder.id}" data-folder-name="${esc(folder.name)}" title="Rename folder">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-        </button>
-        <button class="btn-icon folder-del" data-scenario-folder-id="${folder.id}" title="Delete folder">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
-        </button>` : ""}
+        <span class="folder-count">${ctx && real ? ctx.total(folder) : scenarios.length}</span>
+        ${real ? colorBtn("sfolder", folder.id, folder.color) : ""}
+        ${real ? `<button class="btn-edit" data-scenario-folder-sub="${folder.id}" title="New subfolder">${ICON_SUBFOLDER}</button>
+        <button class="btn-edit" data-scenario-folder-rename="${folder.id}" data-folder-name="${esc(folder.name)}" title="Rename / move folder">${ICON_EDIT}</button>
+        <button class="btn-icon folder-del" data-scenario-folder-id="${folder.id}" title="Delete folder">${ICON_TRASH}</button>` : ""}
       </div>
       <div class="folder-body"></div>`
+    applyColor(el, folder)
 
     el.querySelector(".folder-header").addEventListener("click", e => {
-      if (e.target.closest(".folder-del, [data-scenario-folder-rename], .drag-handle")) return
+      if (e.target.closest(".folder-del, [data-scenario-folder-rename], [data-scenario-folder-sub], .drag-handle, .color-btn")) return
       el.classList.toggle("open"); sessionStorage.setItem(key, el.classList.contains("open") ? "1" : "0")
     })
 
     const body = el.querySelector(".folder-body")
-    if (!scenarios.length) body.innerHTML = `<div class="empty-state" style="padding:20px"><span>Drop a scenario here</span></div>`
-    else {
+    const subs = ctx && real ? (ctx.kidsOf[folder.id] || []).filter(sf => !ctx.query || ctx.total(sf)) : []
+    if (subs.length) {
+      const wrap = document.createElement("div"); wrap.className = "subfolders"
+      subs.forEach(sf => wrap.appendChild(makeScenarioFolderEl(sf, ctx.byFolder[sf.id] || [], "", ctx)))
+      body.appendChild(wrap)
+    }
+    if (!scenarios.length && !subs.length) body.innerHTML = `<div class="empty-state" style="padding:20px"><span>Drop a scenario here</span></div>`
+    else if (scenarios.length) {
       const grid = document.createElement("div"); grid.className = "scenarios-grid"
       scenarios.forEach(s => grid.appendChild(makeScenarioCard(s, mode !== "fav")))
       body.appendChild(grid)
@@ -270,10 +304,17 @@ const UI = (() => {
 
   // ── drag & drop ──
   // Only the ⋮⋮ handle is draggable, so buttons/links inside rows stay clickable.
-  // Folder headers reorder among themselves; rows reorder within a folder or drop onto any folder.
-  function wireFolderDragDrop(container, { onReorderFolders, onDropItem, itemSelector = ".playlist-row", dataKey = "playlistId" }) {
+  // Dragging a FOLDER over another folder's header:
+  //   top edge    → drop just above it (same level as that folder)
+  //   bottom edge → drop just below it
+  //   middle      → drop INSIDE it (becomes a subfolder)
+  // Dropping a folder on "Unsorted" moves it back to the top level.
+  // Rows reorder within a folder or drop onto any folder.
+  function wireFolderDragDrop(container, { onMoveFolder, onDropItem, itemSelector = ".playlist-row", dataKey = "playlistId" }) {
     let dragType = null, dragId = null, openTimer = null, openFor = null
     const isReal = id => id && id !== "none" && id !== "fav"
+    const findFolderEl = id => container.querySelector('.folder-item[data-folder-id="' + id + '"]')
+    const realChildIds = host => [...host.children].filter(c => c.classList.contains("folder-item")).map(c => c.dataset.folderId).filter(isReal)
 
     function clearMarks() {
       container.querySelectorAll(".drag-over-top,.drag-over-bottom,.drop-into").forEach(el => el.classList.remove("drag-over-top", "drag-over-bottom", "drop-into"))
@@ -283,6 +324,18 @@ const UI = (() => {
       const rect = el.getBoundingClientRect()
       el.classList.remove("drag-over-top", "drag-over-bottom")
       el.classList.add((e.clientY - rect.top) < rect.height / 2 ? "drag-over-top" : "drag-over-bottom")
+    }
+    function autoOpen(target) {
+      if (openFor && openFor !== target) stopOpenTimer()
+      if (!target.classList.contains("open") && !openFor) { openFor = target; openTimer = setTimeout(() => target.classList.add("open"), 450) }
+    }
+    // where is the pointer on a folder? "before" / "after" (its header edges) or "into"
+    function zoneFor(target, e) {
+      const header = target.querySelector(":scope > .folder-header"); if (!header) return "into"
+      const h = header.getBoundingClientRect()
+      if (e.clientY < h.top || e.clientY > h.bottom) return "into"
+      const rel = (e.clientY - h.top) / h.height
+      return rel < 0.28 ? "before" : rel > 0.72 ? "after" : "into"
     }
 
     container.addEventListener("dragstart", e => {
@@ -311,16 +364,23 @@ const UI = (() => {
       const target = e.target.closest(".folder-item"); if (!target) return
       const tid = target.dataset.folderId
       if (dragType === "folder") {
-        const dragEl = container.querySelector('.folder-item[data-folder-id="' + dragId + '"]')
-        if (!isReal(tid) || tid === dragId || !dragEl || dragEl.parentElement !== target.parentElement) return
-        e.preventDefault(); mark(target, e)
+        const dragEl = findFolderEl(dragId); if (!dragEl) return
+        if (tid === "none") {
+          if (dragEl.parentElement.classList.contains("folders-list")) return // already top level
+          e.preventDefault(); target.classList.add("drop-into"); return
+        }
+        // can't drop onto Favorites, onto itself, or into its own subfolders
+        if (!isReal(tid) || dragEl.contains(target)) return
+        e.preventDefault()
+        const z = zoneFor(target, e)
+        if (z === "into") { target.classList.add("drop-into"); autoOpen(target) }
+        else { stopOpenTimer(); target.classList.add(z === "before" ? "drag-over-top" : "drag-over-bottom") }
       } else {
         if (tid === "fav") return
         e.preventDefault()
         const row = e.target.closest(itemSelector)
         if (row && row.dataset[dataKey] !== dragId) mark(row, e); else target.classList.add("drop-into")
-        if (openFor && openFor !== target) stopOpenTimer()
-        if (!target.classList.contains("open") && !openFor) { openFor = target; openTimer = setTimeout(() => target.classList.add("open"), 450) }
+        autoOpen(target)
       }
     })
 
@@ -329,15 +389,27 @@ const UI = (() => {
       e.preventDefault()
       const target = e.target.closest(".folder-item"); const tid = target && target.dataset.folderId
       if (dragType === "folder") {
-        const dragEl = container.querySelector('.folder-item[data-folder-id="' + dragId + '"]')
-        if (target && isReal(tid) && tid !== dragId && dragEl && dragEl.parentElement === target.parentElement) {
-          const before = target.classList.contains("drag-over-top")
-          const ids = [...target.parentElement.children].filter(el => el.classList.contains("folder-item")).map(el => el.dataset.folderId).filter(isReal)
-          ids.splice(ids.indexOf(dragId), 1)
-          let to = ids.indexOf(tid); if (!before) to++
-          ids.splice(to, 0, dragId)
-          clearMarks(); onReorderFolders(ids)
+        const dragEl = findFolderEl(dragId)
+        let parentId = undefined, ids = null
+        if (target && dragEl && tid === "none") {
+          const root = container.querySelector(".folders-list")
+          parentId = null; ids = realChildIds(root).filter(x => x !== dragId); ids.push(dragId)
+        } else if (target && dragEl && isReal(tid) && !dragEl.contains(target)) {
+          const z = zoneFor(target, e)
+          if (z === "into") {
+            const sub = target.querySelector(":scope > .folder-body > .subfolders")
+            parentId = tid; ids = (sub ? realChildIds(sub) : []).filter(x => x !== dragId); ids.push(dragId)
+          } else {
+            const host = target.parentElement, pf = host.closest(".folder-item")
+            parentId = pf ? pf.dataset.folderId : null
+            ids = realChildIds(host).filter(x => x !== dragId)
+            let to = ids.indexOf(tid); if (z === "after") to++
+            ids.splice(to, 0, dragId)
+          }
         }
+        const moving = dragId
+        clearMarks(); stopOpenTimer()
+        if (ids) onMoveFolder(moving, parentId, ids)
       } else if (target && tid !== "fav") {
         const ids = [...target.querySelectorAll(itemSelector)].filter(r => r.closest(".folder-item") === target).map(r => r.dataset[dataKey]).filter(id => id !== dragId)
         const row = e.target.closest(itemSelector)
@@ -569,7 +641,7 @@ const UI = (() => {
   }
 
   return {
-    toast, setStatus, setFeedback, byOrder, esc, safeColor, colorBtn, folderOptions, populateFolderSelect, renderFolders, renderScenarios, renderScenarioFolders,
+    toast, setStatus, setFeedback, byOrder, esc, safeColor, colorBtn, applyColor, buildTree, descendantsOf, ICON_SUBFOLDER, ICON_EDIT, ICON_TRASH, folderOptions, populateFolderSelect, renderFolders, renderScenarios, renderScenarioFolders,
     wireFolderDragDrop, wireGridDragDrop,
     openFolderModal, openEditModal, openScenarioBulkModal, openEditScenarioModal, dragHandleSvg,
   }
