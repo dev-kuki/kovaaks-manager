@@ -157,74 +157,87 @@ async function initAimbeast() {
   } catch (err) { UI.toast("aimbeast load failed: " + err.message) }
 }
 
+function aimMatches(p) {
+  return !aimQuery || [p.name, p.game_tag, p.notes].some(v => (v || "").toLowerCase().includes(aimQuery))
+}
+
 function renderAimFolders() {
   const container = document.getElementById("aim-folders-container")
-  document.getElementById("aim-count").textContent = aimPlaylists.filter(p =>
-    !aimQuery || p.name.toLowerCase().includes(aimQuery) || (p.game_tag||"").toLowerCase().includes(aimQuery)
-  ).length
+  const visible = aimPlaylists.filter(aimMatches)
+  document.getElementById("aim-count").textContent = visible.length
   container.innerHTML = ""
   container.classList.toggle("no-drag", !!aimQuery)
 
   const byFolder = {}; const unassigned = []
-  aimPlaylists.forEach(p => {
-    const ok = !aimQuery || p.name.toLowerCase().includes(aimQuery) || (p.game_tag||"").toLowerCase().includes(aimQuery)
-    if (!ok) return
-    if (p.folder_id) { if (!byFolder[p.folder_id]) byFolder[p.folder_id] = []; byFolder[p.folder_id].push(p) }
-    else unassigned.push(p)
-  })
+  visible.forEach(p => { if (p.folder_id) (byFolder[p.folder_id] = byFolder[p.folder_id] || []).push(p); else unassigned.push(p) })
   Object.values(byFolder).forEach(list => list.sort(UI.byOrder))
   unassigned.sort(UI.byOrder)
 
   const list = document.createElement("div"); list.className = "folders-list"
-  const favs = aimPlaylists.filter(p => p.pinned && (!aimQuery || p.name.toLowerCase().includes(aimQuery) || (p.game_tag||"").toLowerCase().includes(aimQuery))).sort(UI.byOrder)
+  const favs = visible.filter(p => p.pinned).sort(UI.byOrder)
   if (favs.length) list.appendChild(makeAimFolderEl({ id: "fav", name: "★ Favorites" }, favs, "fav"))
-  aimFolders.slice().sort(UI.byOrder).forEach(f => {
-    const items = byFolder[f.id]||[]
-    if (aimQuery && !items.length) return
-    list.appendChild(makeAimFolderEl(f, items))
-  })
+  const { kidsOf } = UI.buildTree(aimFolders)
+  const total = f => (byFolder[f.id] || []).length + (kidsOf[f.id] || []).reduce((n, k) => n + total(k), 0)
+  const ctx = { kidsOf, byFolder, total, query: aimQuery }
+  ;(kidsOf.root || []).forEach(f => { if (aimQuery && !total(f)) return; list.appendChild(makeAimFolderEl(f, byFolder[f.id] || [], "", ctx)) })
   if (unassigned.length || (!aimQuery && aimFolders.length)) list.appendChild(makeAimFolderEl({ id: "none", name: "Unsorted" }, unassigned, "ghost"))
 
   if (!list.children.length) {
-    container.innerHTML = `<div class="empty-state"><div class="empty-glyph">⬡</div><p>No Aimbeast playlists yet</p><span>Add playlists with their workshop URL or code</span></div>`
+    container.innerHTML = aimQuery
+      ? `<div class="empty-state"><div class="empty-glyph">◻</div><p>No results for "${esc(aimQuery)}"</p></div>`
+      : `<div class="empty-state"><div class="empty-glyph">⬡</div><p>No Aimbeast playlists yet</p><span>Add playlists with their workshop URL or code</span></div>`
   } else {
     container.appendChild(list)
   }
 }
 
-function makeAimFolderEl(folder, playlists, ghost = false) {
+// mode: "" = real folder, "ghost" = Unsorted, "fav" = Favorites
+function makeAimFolderEl(folder, playlists, mode = "", ctx = null) {
   const el = document.createElement("div"); el.className = "folder-item"; el.dataset.folderId = folder.id
   const key = "aim-fo-" + folder.id
-  { const stored = sessionStorage.getItem(key); if (stored === "1" || (stored === null && ghost === "fav")) el.classList.add("open") }
+  const real = !mode
+  { const stored = sessionStorage.getItem(key); if (stored === "1" || (stored === null && mode === "fav")) el.classList.add("open") }
 
   el.innerHTML = `
     <div class="folder-header">
-      ${ghost ? `<span class="drag-handle-spacer"></span>` : UI.dragHandleSvg}
+      ${real ? UI.dragHandleSvg : `<span class="drag-handle-spacer"></span>`}
       <span class="folder-chevron">›</span>
       <span class="folder-name">${esc(folder.name)}</span>
-      <span class="folder-count">${playlists.length}</span>
-      ${!ghost ? `<button class="btn-edit" data-aim-folder-rename="${folder.id}" data-folder-name="${esc(folder.name)}" title="Rename">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-      </button>
-      <button class="btn-icon aim-folder-del" data-aim-folder-id="${folder.id}" title="Delete">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
-      </button>` : ""}
+      <span class="folder-count">${ctx && real ? ctx.total(folder) : playlists.length}</span>
+      ${real ? UI.colorBtn("afolder", folder.id, folder.color) : ""}
+      ${real ? `<button class="btn-edit" data-aim-folder-sub="${folder.id}" title="New subfolder">${UI.ICON_SUBFOLDER}</button>
+      <button class="btn-edit" data-aim-folder-rename="${folder.id}" data-folder-name="${esc(folder.name)}" title="Rename / move folder">${UI.ICON_EDIT}</button>
+      <button class="btn-icon aim-folder-del" data-aim-folder-id="${folder.id}" title="Delete folder">${UI.ICON_TRASH}</button>` : ""}
     </div>
     <div class="folder-body"></div>`
+  UI.applyColor(el, folder)
 
   el.querySelector(".folder-header").addEventListener("click", e => {
-    if (e.target.closest(".aim-folder-del, [data-aim-folder-rename], .drag-handle")) return
+    if (e.target.closest(".aim-folder-del, [data-aim-folder-rename], [data-aim-folder-sub], .drag-handle, .color-btn")) return
     el.classList.toggle("open"); sessionStorage.setItem(key, el.classList.contains("open") ? "1" : "0")
   })
 
   const body = el.querySelector(".folder-body")
-  if (!playlists.length) {
-    body.innerHTML = `<div class="empty-state" style="padding:20px"><span>Drop a playlist here</span></div>`
-  } else {
-    playlists.forEach(p => body.appendChild(makeAimPlaylistRow(p, ghost !== "fav")))
+  const subs = ctx && real ? (ctx.kidsOf[folder.id] || []).filter(sf => !ctx.query || ctx.total(sf)) : []
+  if (subs.length) {
+    const wrap = document.createElement("div"); wrap.className = "subfolders"
+    subs.forEach(sf => wrap.appendChild(makeAimFolderEl(sf, ctx.byFolder[sf.id] || [], "", ctx)))
+    body.appendChild(wrap)
   }
+  if (!playlists.length && !subs.length) body.innerHTML = `<div class="empty-state" style="padding:20px"><span>Drop a playlist here</span></div>`
+  else playlists.forEach(p => body.appendChild(makeAimPlaylistRow(p, mode !== "fav")))
   return el
 }
+
+document.addEventListener("color-pick", async e => {
+  const { kind, id, color } = e.detail
+  if (kind !== "afolder") return
+  const f = aimFolders.find(x => x.id === id); if (!f) return
+  const prev = f.color || null
+  f.color = color || null; renderAimFolders()
+  try { await DB.setAimFolderColor(id, color) }
+  catch (err) { f.color = prev; renderAimFolders(); UI.toast("couldn't save color — run the Aimbeast folder SQL in Settings. " + err.message, 4500) }
+})
 
 function safeUrl(url) {
   try {
@@ -259,12 +272,7 @@ function makeAimPlaylistRow(p, showHandle = true) {
 }
 
 function populateAimFolderSelect(selectedId = "") {
-  const sel = document.getElementById("aim-pl-folder"); if (!sel) return
-  sel.innerHTML = '<option value="">— no folder —</option>'
-  aimFolders.slice().sort(UI.byOrder).forEach(f => {
-    const o = document.createElement("option"); o.value = f.id; o.textContent = f.name
-    if (f.id === selectedId) o.selected = true; sel.appendChild(o)
-  })
+  UI.populateFolderSelect(aimFolders, "aim-pl-folder", selectedId)
 }
 
 function openAimModal(playlist = null) {
@@ -306,10 +314,10 @@ document.getElementById("aim-modal-confirm").addEventListener("click", async () 
 })
 
 document.getElementById("btn-new-aim-folder").addEventListener("click", () => {
-  UI.openFolderModal(async name => {
-    try { await DB.createAimFolder(name); await initAimbeast(); UI.toast(`"${name}" created`) }
-    catch (err) { UI.toast("error: " + err.message) }
-  })
+  UI.openFolderModal(async (name, parentId) => {
+    try { await DB.createAimFolder(name, null, parentId); if (parentId) sessionStorage.setItem("aim-fo-" + parentId, "1"); await initAimbeast(); UI.toast(`"${name}" created`) }
+    catch (err) { UI.toast("error: " + err.message + (parentId ? " (subfolders need the Aimbeast folder SQL in Settings)" : ""), 4500) }
+  }, null, { parents: UI.folderOptions(aimFolders), parentId: "" })
 })
 
 document.getElementById("aim-search").addEventListener("input", e => {
@@ -318,11 +326,15 @@ document.getElementById("aim-search").addEventListener("input", e => {
 
 // drag & drop for aimbeast folders/playlists — optimistic: the UI updates instantly, saving happens in the background
 UI.wireFolderDragDrop(document.getElementById("aim-folders-container"), {
-  onReorderFolders: async ids => {
-    ids.forEach((id, i) => { const f = aimFolders.find(x => x.id === id); if (f) f.position = i })
+  onMoveFolder: async (id, parentId, ids) => {
+    const f = aimFolders.find(x => x.id === id); if (!f) return
+    const changed = (f.parent_id || null) !== (parentId || null)
+    f.parent_id = parentId || null
+    ids.forEach((fid, i) => { const x = aimFolders.find(y => y.id === fid); if (x) x.position = i })
+    if (parentId) sessionStorage.setItem("aim-fo-" + parentId, "1")
     renderAimFolders()
-    try { await DB.reorderAimFolders(ids) }
-    catch (err) { UI.toast("couldn't save order — run the SQL migration in Settings. " + err.message); await initAimbeast() }
+    try { if (changed) await DB.setAimFolderParent(id, parentId); await DB.reorderAimFolders(ids) }
+    catch (err) { UI.toast("couldn't save — run the Aimbeast folder SQL in Settings (parent_id). " + err.message, 4500); await initAimbeast() }
   },
   onDropItem: async (id, targetFolderId, ids) => {
     const folderId = targetFolderId === "none" ? null : targetFolderId
@@ -346,19 +358,33 @@ document.getElementById("aim-folders-container").addEventListener("click", async
     catch (err) { pl.pinned = !pl.pinned; renderAimFolders(); UI.toast("couldn't favorite — run the SQL migration in Settings (pinned column). " + err.message) }
     return
   }
+  const subBtn = e.target.closest("[data-aim-folder-sub]")
+  if (subBtn) {
+    const pid = subBtn.dataset.aimFolderSub, pf = aimFolders.find(x => x.id === pid)
+    UI.openFolderModal(async name => {
+      try { await DB.createAimFolder(name, null, pid); sessionStorage.setItem("aim-fo-" + pid, "1"); await initAimbeast(); UI.toast(`"${name}" created inside "${pf ? pf.name : "folder"}"`) }
+      catch (err) { UI.toast("couldn't create subfolder — run the Aimbeast folder SQL in Settings. " + err.message, 4500) }
+    }, null, { title: "New subfolder" })
+    return
+  }
   const renameBtn = e.target.closest("[data-aim-folder-rename]")
   if (renameBtn) {
     const id = renameBtn.dataset.aimFolderRename
-    UI.openFolderModal(async name => {
-      try { await DB.renameAimFolder(id, name); await initAimbeast(); UI.toast(`renamed to "${name}"`) }
-      catch (err) { UI.toast("error: " + err.message) }
-    }, { name: renameBtn.dataset.folderName })
+    const f0 = aimFolders.find(x => x.id === id)
+    const bad = UI.descendantsOf(aimFolders, id)
+    UI.openFolderModal(async (name, parentId) => {
+      try {
+        await DB.renameAimFolder(id, name)
+        if (parentId !== undefined && (parentId || null) !== ((f0 && f0.parent_id) || null)) await DB.setAimFolderParent(id, parentId)
+        await initAimbeast(); UI.toast(`"${name}" saved`)
+      } catch (err) { UI.toast("error: " + err.message + " (moving folders needs the Aimbeast folder SQL in Settings)", 4500) }
+    }, { name: renameBtn.dataset.folderName }, { parents: UI.folderOptions(aimFolders).filter(o => !bad.has(o.id)), parentId: (f0 && f0.parent_id) || "" })
     return
   }
   if (e.target.closest(".aim-folder-del")) {
     const id = e.target.closest("[data-aim-folder-id]").dataset.aimFolderId
     const f = aimFolders.find(x => x.id === id)
-    if (!f || !confirm(`Delete folder "${f.name}"?`)) return
+    if (!f || !confirm(`Delete folder "${f.name}"?\nPlaylists become unsorted and any subfolders move to the top level.`)) return
     try { await DB.deleteAimFolder(id); await initAimbeast(); UI.toast(`"${f.name}" deleted`) }
     catch (err) { UI.toast("error: " + err.message) }
     return
