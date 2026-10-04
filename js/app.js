@@ -319,6 +319,16 @@
     }
   })
 
+  // ── colors: folders + playlists ──
+  document.addEventListener("color-pick", async e => {
+    const { kind, id, color } = e.detail
+    const item = (kind === "folder" ? folders : playlists).find(x => x.id === id); if (!item) return
+    const prev = item.color || null
+    item.color = color || null; render()
+    try { await (kind === "folder" ? DB.setFolderColor(id, color) : DB.setPlaylistColor(id, color)) }
+    catch (err) { item.color = prev; render(); UI.toast("couldn't save color — run the color SQL migration in Settings. " + err.message, 4500) }
+  })
+
   // ── export / import ──
 
   const importFileInput = document.getElementById("import-file")
@@ -351,7 +361,7 @@
       allPlaylists.forEach(p => {
         const filename = `playlists/${p.id}.json`
         zip.file(filename, JSON.stringify(p.file_data, null, 2))
-        manifest.playlists.push({ id: p.id, name: p.name, folder_id: p.folder_id, game_tag: p.game_tag, notes: p.notes, share_code: p.share_code, file: filename })
+        manifest.playlists.push({ id: p.id, name: p.name, folder_id: p.folder_id, game_tag: p.game_tag, notes: p.notes, share_code: p.share_code, color: p.color || null, file: filename })
       })
 
       zip.file("manifest.json", JSON.stringify(manifest, null, 2))
@@ -376,7 +386,7 @@
       // create folders and build id map
       const folderMap = {}
       for (const f of manifest.folders) {
-        const created = await DB.createFolder(f.name)
+        const created = await DB.createFolder(f.name, f.color)
         folderMap[f.id] = created.id
       }
 
@@ -385,7 +395,7 @@
       for (const p of manifest.playlists) {
         const jsonFile = zip.file(p.file)
         const fileData = jsonFile ? JSON.parse(await jsonFile.async("string")) : null
-        await DB.uploadPlaylist({ name: p.name, folderId: folderMap[p.folder_id]||null, gameTag: p.game_tag, notes: p.notes, shareCode: p.share_code, fileData })
+        await DB.uploadPlaylist({ name: p.name, folderId: folderMap[p.folder_id]||null, gameTag: p.game_tag, notes: p.notes, shareCode: p.share_code, fileData, color: p.color })
         count++
       }
 
