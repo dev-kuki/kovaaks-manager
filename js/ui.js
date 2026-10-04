@@ -26,11 +26,22 @@ const UI = (() => {
     return pa - pb || String(a.name).localeCompare(String(b.name))
   }
 
+  // folders flattened in tree order, with "Parent / Child" labels (flat lists just come out in order)
+  function folderOptions(folders) {
+    const ids = new Set(folders.map(f => f.id)), kids = {}
+    folders.forEach(f => { const k = f.parent_id && f.parent_id !== f.id && ids.has(f.parent_id) ? f.parent_id : "root"; (kids[k] = kids[k] || []).push(f) })
+    const out = []
+    ;(function walk(key, path, depth) {
+      (kids[key] || []).slice().sort(byOrder).forEach(f => { const label = path ? path + " / " + f.name : f.name; out.push({ id: f.id, label, name: f.name, depth }); walk(f.id, label, depth + 1) })
+    })("root", "", 0)
+    return out
+  }
+
   function populateFolderSelect(folders, selId = "pl-folder", selectedId = "") {
     const sel = document.getElementById(selId); if (!sel) return
     sel.innerHTML = '<option value="">— no folder —</option>'
-    folders.slice().sort(byOrder).forEach(f => {
-      const o = document.createElement("option"); o.value = f.id; o.textContent = f.name
+    folderOptions(folders).forEach(f => {
+      const o = document.createElement("option"); o.value = f.id; o.textContent = f.label
       if (f.id === selectedId) o.selected = true; sel.appendChild(o)
     })
   }
@@ -60,14 +71,20 @@ const UI = (() => {
     const list = document.createElement("div"); list.className = "folders-list"
     const favs = visible.filter(p => p.pinned).sort(byOrder)
     if (favs.length) list.appendChild(makeFolderEl({ id: "fav", name: "★ Favorites" }, favs, "fav"))
-    folders.slice().sort(byOrder).forEach(f => { const items = byFolder[f.id] || []; if (query && !items.length) return; list.appendChild(makeFolderEl(f, items)) })
+    // nested folders: a folder whose parent is missing/invalid is treated as top-level
+    const idSet = new Set(folders.map(f => f.id)), kidsOf = {}
+    folders.forEach(f => { const pk = f.parent_id && f.parent_id !== f.id && idSet.has(f.parent_id) ? f.parent_id : "root"; (kidsOf[pk] = kidsOf[pk] || []).push(f) })
+    Object.values(kidsOf).forEach(l => l.sort(byOrder))
+    const total = f => (byFolder[f.id] || []).length + (kidsOf[f.id] || []).reduce((n, k) => n + total(k), 0)
+    const ctx = { kidsOf, byFolder, total, query }
+    ;(kidsOf.root || []).forEach(f => { if (query && !total(f)) return; list.appendChild(makeFolderEl(f, byFolder[f.id] || [], "", ctx)) })
     if (unassigned.length || (!query && folders.length)) list.appendChild(makeFolderEl({ id: "none", name: "Unsorted" }, unassigned, "ghost"))
     if (!list.children.length) { container.innerHTML = `<div class="empty-state"><div class="empty-glyph">◻</div><p>No results for "${esc(query)}"</p></div>`; return }
     container.appendChild(list)
   }
 
   // mode: "" = real folder, "ghost" = Unsorted, "fav" = Favorites
-  function makeFolderEl(folder, playlists, mode = "") {
+  function makeFolderEl(folder, playlists, mode = "", ctx = null) {
     const el = document.createElement("div"); el.className = "folder-item"; el.dataset.folderId = folder.id
     const key = "fo-" + folder.id
     const stored = sessionStorage.getItem(key)
@@ -79,9 +96,12 @@ const UI = (() => {
         ${real ? dragHandleSvg : `<span class="drag-handle-spacer"></span>`}
         <span class="folder-chevron">›</span>
         <span class="folder-name">${esc(folder.name)}</span>
-        <span class="folder-count">${playlists.length}</span>
+        <span class="folder-count">${ctx && real ? ctx.total(folder) : playlists.length}</span>
         ${real ? colorBtn("folder", folder.id, folder.color) : ""}
-        ${real ? `<button class="btn-edit" data-folder-rename="${folder.id}" data-folder-name="${esc(folder.name)}" title="Rename folder">
+        ${real ? `<button class="btn-edit" data-folder-sub="${folder.id}" title="New subfolder">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/><line x1="12" y1="11" x2="12" y2="17"/><line x1="9" y1="14" x2="15" y2="14"/></svg>
+        </button>
+        <button class="btn-edit" data-folder-rename="${folder.id}" data-folder-name="${esc(folder.name)}" title="Rename folder">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
         </button>
         <button class="btn-icon folder-del" data-folder-id="${folder.id}" title="Delete folder">
@@ -92,12 +112,18 @@ const UI = (() => {
     applyColor(el, folder)
 
     el.querySelector(".folder-header").addEventListener("click", e => {
-      if (e.target.closest(".folder-del, [data-folder-rename], .drag-handle, .color-btn")) return
+      if (e.target.closest(".folder-del, [data-folder-rename], [data-folder-sub], .drag-handle, .color-btn")) return
       el.classList.toggle("open"); sessionStorage.setItem(key, el.classList.contains("open") ? "1" : "0")
     })
 
     const body = el.querySelector(".folder-body")
-    if (!playlists.length) body.innerHTML = `<div class="empty-state" style="padding:20px"><span>Drop a playlist here</span></div>`
+    const subs = ctx && real ? (ctx.kidsOf[folder.id] || []).filter(sf => !ctx.query || ctx.total(sf)) : []
+    if (subs.length) {
+      const wrap = document.createElement("div"); wrap.className = "subfolders"
+      subs.forEach(sf => wrap.appendChild(makeFolderEl(sf, ctx.byFolder[sf.id] || [], "", ctx)))
+      body.appendChild(wrap)
+    }
+    if (!playlists.length && !subs.length) body.innerHTML = `<div class="empty-state" style="padding:20px"><span>Drop a playlist here</span></div>`
     else playlists.forEach(p => body.appendChild(makePlaylistRow(p, mode !== "fav")))
     return el
   }
@@ -285,7 +311,8 @@ const UI = (() => {
       const target = e.target.closest(".folder-item"); if (!target) return
       const tid = target.dataset.folderId
       if (dragType === "folder") {
-        if (!isReal(tid) || tid === dragId) return
+        const dragEl = container.querySelector('.folder-item[data-folder-id="' + dragId + '"]')
+        if (!isReal(tid) || tid === dragId || !dragEl || dragEl.parentElement !== target.parentElement) return
         e.preventDefault(); mark(target, e)
       } else {
         if (tid === "fav") return
@@ -302,16 +329,17 @@ const UI = (() => {
       e.preventDefault()
       const target = e.target.closest(".folder-item"); const tid = target && target.dataset.folderId
       if (dragType === "folder") {
-        if (target && isReal(tid) && tid !== dragId) {
+        const dragEl = container.querySelector('.folder-item[data-folder-id="' + dragId + '"]')
+        if (target && isReal(tid) && tid !== dragId && dragEl && dragEl.parentElement === target.parentElement) {
           const before = target.classList.contains("drag-over-top")
-          const ids = [...container.querySelectorAll(".folder-item")].map(el => el.dataset.folderId).filter(isReal)
+          const ids = [...target.parentElement.children].filter(el => el.classList.contains("folder-item")).map(el => el.dataset.folderId).filter(isReal)
           ids.splice(ids.indexOf(dragId), 1)
           let to = ids.indexOf(tid); if (!before) to++
           ids.splice(to, 0, dragId)
           clearMarks(); onReorderFolders(ids)
         }
       } else if (target && tid !== "fav") {
-        const ids = [...target.querySelectorAll(".folder-body " + itemSelector)].map(r => r.dataset[dataKey]).filter(id => id !== dragId)
+        const ids = [...target.querySelectorAll(itemSelector)].filter(r => r.closest(".folder-item") === target).map(r => r.dataset[dataKey]).filter(id => id !== dragId)
         const row = e.target.closest(itemSelector)
         if (row && row.dataset[dataKey] !== dragId) {
           let idx = ids.indexOf(row.dataset[dataKey]); if (!row.classList.contains("drag-over-top")) idx++
@@ -371,19 +399,25 @@ const UI = (() => {
   }
 
   // modals
-  function openFolderModal(onConfirm, existing = null) {
+  function openFolderModal(onConfirm, existing = null, opts = {}) {
     const overlay = document.getElementById("modal-overlay")
     const input = document.getElementById("folder-name-input")
     const title = document.getElementById("modal-title")
     const confirmBtn = document.getElementById("modal-confirm")
-    title.textContent = existing ? "Rename folder" : "New folder"
+    title.textContent = opts.title || (existing ? "Edit folder" : "New folder")
     confirmBtn.textContent = existing ? "Save" : "Create"
+    const pf = document.getElementById("folder-parent-field"), ps = document.getElementById("folder-parent-select")
+    if (opts.parents && pf && ps) {
+      pf.style.display = ""
+      ps.innerHTML = '<option value="">— top level —</option>' + opts.parents.map(o => `<option value="${esc(o.id)}">${"— ".repeat(o.depth)}${esc(o.name)}</option>`).join("")
+      ps.value = opts.parentId || ""
+    } else if (pf) pf.style.display = "none"
     overlay.classList.remove("hidden"); input.value = existing ? existing.name : ""; input.focus(); input.select()
 
     function done(confirmed) {
       overlay.classList.add("hidden")
       cleanup()
-      if (confirmed) { const n = input.value.trim(); if (n) onConfirm(n) }
+      if (confirmed) { const n = input.value.trim(); if (n) onConfirm(n, opts.parents && ps ? (ps.value || null) : undefined) }
     }
     function cleanup() {
       confirmBtn.onclick = null
@@ -535,7 +569,7 @@ const UI = (() => {
   }
 
   return {
-    toast, setStatus, setFeedback, byOrder, esc, safeColor, colorBtn, populateFolderSelect, renderFolders, renderScenarios, renderScenarioFolders,
+    toast, setStatus, setFeedback, byOrder, esc, safeColor, colorBtn, folderOptions, populateFolderSelect, renderFolders, renderScenarios, renderScenarioFolders,
     wireFolderDragDrop, wireGridDragDrop,
     openFolderModal, openEditModal, openScenarioBulkModal, openEditScenarioModal, dragHandleSvg,
   }
