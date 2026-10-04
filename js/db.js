@@ -23,8 +23,8 @@ const DB = (() => {
     const { data, error } = await client.from("folders").select("*")
     if (error) throw error; return data
   }
-  async function createFolder(name) {
-    const { data, error } = await client.from("folders").insert({ name }).select().single()
+  async function createFolder(name, color) {
+    const { data, error } = await client.from("folders").insert(color ? { name, color } : { name }).select().single()
     if (error) throw error; return data
   }
   async function renameFolder(id, name) {
@@ -36,6 +36,14 @@ const DB = (() => {
     if (error) throw error
   }
   async function reorderFolders(ids) { await bulkPosition("folders", ids) }
+  async function setFolderColor(id, color) {
+    const { error } = await client.from("folders").update({ color: color || null }).eq("id", id)
+    if (error) throw error
+  }
+  async function setPlaylistColor(id, color) {
+    const { error } = await client.from("playlists").update({ color: color || null }).eq("id", id)
+    if (error) throw error
+  }
 
   // playlists
   async function getAllPlaylists() {
@@ -46,8 +54,10 @@ const DB = (() => {
     const { error } = await client.from("playlists").update({ pinned }).eq("id", id)
     if (error) throw error
   }
-  async function uploadPlaylist({ name, folderId, gameTag, notes, shareCode, fileData }) {
-    const { data, error } = await client.from("playlists").insert({ name, folder_id: folderId||null, game_tag: gameTag||null, notes: notes||null, share_code: shareCode||null, file_data: fileData == null ? null : fileData }).select().single()
+  async function uploadPlaylist({ name, folderId, gameTag, notes, shareCode, fileData, color }) {
+    const row = { name, folder_id: folderId||null, game_tag: gameTag||null, notes: notes||null, share_code: shareCode||null, file_data: fileData == null ? null : fileData }
+    if (color) row.color = color // only sent when set, so it never breaks a DB that hasn't run the color migration
+    const { data, error } = await client.from("playlists").insert(row).select().single()
     if (error) throw error; return data
   }
   async function updatePlaylist(id, { name, folderId, gameTag, notes, shareCode, fileData }) {
@@ -188,7 +198,7 @@ const DB = (() => {
 
   return {
     init, ready, ping,
-    getFolders, createFolder, renameFolder, deleteFolder, reorderFolders,
+    getFolders, createFolder, renameFolder, deleteFolder, reorderFolders, setFolderColor, setPlaylistColor,
     getAllPlaylists, togglePlaylistPin, uploadPlaylist, updatePlaylist, movePlaylistToFolder, getPlaylistFile, deletePlaylist, getAllPlaylistsWithFiles, reorderPlaylists,
     getScenarioFolders, createScenarioFolder, renameScenarioFolder, deleteScenarioFolder, reorderScenarioFolders,
     getAllScenarios, insertScenario, updateScenario, moveScenarioToFolder, toggleScenarioPin, deleteScenario, reorderScenarios,
