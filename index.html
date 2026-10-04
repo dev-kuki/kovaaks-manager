@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>KovaaK's Manager</title>
+  <title>Aim Resources</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
@@ -18,12 +18,16 @@
         <div class="logo">
           <div class="logo-icon">K</div>
           <div class="logo-text">
-            <span class="logo-main">KovaaK's</span>
-            <span class="logo-sub">manager</span>
+            <span class="logo-main">Aim</span>
+            <span class="logo-sub">Resources</span>
           </div>
         </div>
 
         <nav class="nav">
+          <button class="nav-btn" data-view="resources">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>
+            <span>Resources</span>
+          </button>
           <button class="nav-btn active" data-view="playlists">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
             <span>Playlists</span>
@@ -138,6 +142,24 @@
             <span>Add scenarios with their share codes to launch them directly, and drop them into folders like your playlists</span>
           </div>
         </div>
+      </section>
+
+      <!-- resources -->
+      <section id="view-resources" class="view">
+        <div class="topbar">
+          <div class="topbar-left"><h1>Resources</h1><span class="count-badge" id="resource-count">0</span></div>
+          <div class="topbar-right">
+            <div class="search-box">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input type="text" id="resource-search" placeholder="search…" />
+            </div>
+            <button class="btn-primary" id="btn-add-resource">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Add Resource
+            </button>
+          </div>
+        </div>
+        <div id="resources-container"></div>
       </section>
 
       <!-- routine -->
@@ -427,7 +449,19 @@ alter table aimbeast_folders add column if not exists position integer;
 alter table aimbeast_folders add column if not exists color text;
 alter table aimbeast_folders add column if not exists parent_id uuid references aimbeast_folders(id) on delete set null;
 alter table aimbeast_playlists add column if not exists pinned boolean default false;
-alter table aimbeast_playlists add column if not exists position integer;</code></pre>
+alter table aimbeast_playlists add column if not exists position integer;
+
+create table if not exists resources (
+  id uuid default gen_random_uuid() primary key,
+  section text not null,
+  title text not null,
+  url text,
+  description text,
+  authors text,
+  featured boolean default false,
+  position numeric,
+  created_at timestamptz default now()
+);</code></pre>
               <p style="margin-top:2px">Folders inside folders now work for <strong>playlists, scenarios and Aimbeast</strong>. If you already have the tables, the <code>alter table</code> block above is all you need — run it once (safe to repeat). If you never created <code>scenario_folders</code>, run its <code>create table if not exists</code> block above first.</p>
             </div>
           </details>
@@ -464,7 +498,7 @@ alter table aimbeast_playlists add column if not exists position integer;</code>
           </div>
           <div class="field">
             <label>Background</label>
-            <div class="seg"><button type="button" data-theme-opt="bg:blocks">Blocks</button><button type="button" data-theme-opt="bg:stars">Stars</button><button type="button" data-theme-opt="bg:grid">Grid</button><button type="button" data-theme-opt="bg:off">Off</button></div>
+            <div class="seg"><button type="button" data-theme-opt="bg:blocks">Blocks</button><button type="button" data-theme-opt="bg:stars">Stars</button><button type="button" data-theme-opt="bg:aurora">Aurora</button><button type="button" data-theme-opt="bg:grid">Grid</button><button type="button" data-theme-opt="bg:off">Off</button></div>
           </div>
           <div class="field">
             <label>Animations</label>
@@ -785,6 +819,19 @@ alter table aimbeast_playlists add column if not exists position integer;</code>
 
   <div id="toast"></div>
 
+  <div id="res-modal" class="modal-backdrop hidden">
+    <div class="modal">
+      <div class="modal-hdr"><span id="res-modal-title">Add resource</span><button class="modal-x" id="res-modal-close">✕</button></div>
+      <div class="field"><label for="res-section">Section</label><input type="text" id="res-section" list="res-sections" placeholder="e.g. Routines (General)" autocomplete="off" /><datalist id="res-sections"></datalist></div>
+      <div class="field"><label for="res-title">Title</label><input type="text" id="res-title" placeholder="e.g. Voltaic Benchmarks" /></div>
+      <div class="field"><label for="res-url">Link</label><input type="text" id="res-url" placeholder="https://…" /></div>
+      <div class="field"><label for="res-desc">Description</label><textarea id="res-desc" placeholder="What is it and who is it for?"></textarea></div>
+      <div class="field"><label for="res-authors">Author(s)</label><input type="text" id="res-authors" placeholder="e.g. Voltaic, Fallen" /></div>
+      <label class="res-check"><input type="checkbox" id="res-featured" /> Featured (bold + star)</label>
+      <div class="modal-actions"><button class="btn-ghost" id="res-cancel">Cancel</button><button class="btn-primary" id="res-save">Save</button></div>
+    </div>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.2/dist/umd/supabase.js" integrity="sha384-yifgV8iFWyp5cgu+V1G1rtlEHpEErPlL5fTrkUELIsWq0CIVDON2WP/NlXVJT3vO" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js" integrity="sha384-+mbV2IY1Zk/X1p/nWllGySJSUN8uMs+gUAN10Or95UBH0fpj6GfKgPmgC5EXieXG" crossorigin="anonymous"></script>
   <script src="js/theme.js"></script>
@@ -792,6 +839,7 @@ alter table aimbeast_playlists add column if not exists position integer;</code>
   <script src="js/ui.js"></script>
   <script src="js/routine.js"></script>
   <script src="js/sens.js"></script>
+  <script src="js/resources.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>
