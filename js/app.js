@@ -12,12 +12,35 @@
 
 
   // view switching
+  // ── popups: Routine / Sensitivity / Export-Import open over the page instead of being nav tabs ──
+  const panelBackdrop = document.createElement("div"); panelBackdrop.id = "panel-backdrop"; document.body.appendChild(panelBackdrop)
+  function closePanel() {
+    document.querySelectorAll(".view.panel.open").forEach(p => p.classList.remove("open", "active"))
+    panelBackdrop.classList.remove("show")
+  }
+  function openPanel(name) {
+    closePanel(); const p = document.getElementById("view-" + name); if (!p) return
+    p.classList.add("open", "active"); panelBackdrop.classList.add("show"); p.scrollTop = 0
+    if (name === "sens") initSens()
+  }
+  document.querySelectorAll(".view.panel").forEach(p => {
+    document.body.appendChild(p) // top level, so the backdrop (also on body) can never sit on top of it
+    const bar = p.querySelector(".topbar"), x = document.createElement("button")
+    x.type = "button"; x.className = "panel-close"; x.setAttribute("aria-label", "Close"); x.dataset.closePanel = ""; x.textContent = "✕"
+    if (bar) bar.appendChild(x); else p.prepend(x)
+  })
+  document.addEventListener("click", e => {
+    const o = e.target.closest("[data-open-panel]"); if (o) return openPanel(o.dataset.openPanel)
+    if (e.target.closest("[data-close-panel]") || e.target === panelBackdrop) closePanel()
+  })
+  document.addEventListener("keydown", e => { if (e.key === "Escape" && !document.querySelector(".modal-backdrop:not(.hidden)")) closePanel() })
+  window.openPanel = openPanel; window.closePanel = closePanel
+
   function showView(name) {
+    closePanel()
     document.querySelectorAll(".nav-btn").forEach(b => b.classList.toggle("active", b.dataset.view === name))
     document.querySelectorAll(".view").forEach(v => v.classList.toggle("active", v.id === "view-" + name))
     document.getElementById("main").scrollTop = 0
-    if (name === "sens") initSens()
-    if (name === "aimbeast") initAimbeast()
     if (name === "resources") Resources.init()
   }
   document.querySelectorAll(".nav-btn").forEach(btn => btn.addEventListener("click", () => showView(btn.dataset.view)))
@@ -52,7 +75,7 @@
       localStorage.setItem("sb-url", url); localStorage.setItem("sb-key", key)
       UI.setStatus("connected")
       if (!silent) UI.setFeedback("settings-feedback", "connected ✓")
-      await refresh(); initSens(); initAimbeast(); Resources.init(true)
+      await refresh(); initSens(); Resources.init(true)
       if (!silent) showView("playlists")
     } catch (err) { UI.setStatus("disconnected"); UI.setFeedback("settings-feedback", err.message, true); if (silent) showView("settings") }
   }
@@ -364,7 +387,7 @@
       playlist: [() => playlists,       DB.setPlaylistColor,       render],
       sfolder:  [() => scenarioFolders, DB.setScenarioFolderColor, render],
     }
-    const entry = map[kind]; if (!entry) return // "afolder" (Aimbeast) is handled in sens.js
+    const entry = map[kind]; if (!entry) return
     const item = entry[0]().find(x => x.id === id); if (!item) return
     const prev = item.color || null
     item.color = color || null; render()
@@ -397,13 +420,12 @@
     if (!DB.ready()) { UI.setFeedback("export-feedback", "not connected", true); return }
     UI.setFeedback("export-feedback", "building zip…")
     try {
-      const [allFolders, allPlaylists, allScFolders, allScenarios, allAimFolders, allAim] = await Promise.all([
+      const [allFolders, allPlaylists, allScFolders, allScenarios] = await Promise.all([
         DB.getFolders(), DB.getAllPlaylistsWithFiles(),
         DB.getScenarioFolders().catch(() => []), DB.getAllScenarios().catch(() => []),
-        DB.getAimFolders().catch(() => []), DB.getAllAimPlaylists().catch(() => []),
       ])
       const zip = new JSZip()
-      const manifest = { folders: allFolders, playlists: [], scenarioFolders: allScFolders, scenarios: allScenarios, aimFolders: allAimFolders, aimPlaylists: allAim }
+      const manifest = { folders: allFolders, playlists: [], scenarioFolders: allScFolders, scenarios: allScenarios }
 
       allPlaylists.forEach(p => {
         const filename = `playlists/${p.id}.json`
@@ -415,14 +437,14 @@
       const blob = await zip.generateAsync({ type: "blob" })
       const a = Object.assign(document.createElement("a"), { href: URL.createObjectURL(blob), download: `kovaaks-library-${new Date().toISOString().slice(0,10)}.zip` })
       a.click(); URL.revokeObjectURL(a.href)
-      UI.setFeedback("export-feedback", `exported ${allPlaylists.length} playlists, ${allScenarios.length} scenarios, ${allAim.length} Aimbeast playlists ✓`)
+      UI.setFeedback("export-feedback", `exported ${allPlaylists.length} playlists, ${allScenarios.length} scenarios ✓`)
     } catch (err) { UI.setFeedback("export-feedback", err.message, true) }
   })
 
   importBtn.addEventListener("click", async () => {
     if (!DB.ready()) { UI.setFeedback("import-feedback", "not connected", true); return }
     const file = importFileInput.files[0]; if (!file) return
-    if (!confirm("This will import all folders, playlists, scenarios and Aimbeast playlists from the zip. Existing data won't be deleted. Continue?")) return
+    if (!confirm("This will import all folders, playlists and scenarios from the zip. Existing data won't be deleted. Continue?")) return
     UI.setFeedback("import-feedback", "importing…"); importBtn.disabled = true
     try {
       const zip = await JSZip.loadAsync(file)
@@ -439,7 +461,6 @@
       }
       const folderMap = await importTree(manifest.folders, f => DB.createFolder(f.name, f.color), DB.setFolderParent)
       const scMap = await importTree(manifest.scenarioFolders, f => DB.createScenarioFolder(f.name, f.color), DB.setScenarioFolderParent)
-      const aimMap = await importTree(manifest.aimFolders, f => DB.createAimFolder(f.name, f.color), DB.setAimFolderParent)
 
       let count = 0
       for (const p of manifest.playlists) {
@@ -451,48 +472,12 @@
       for (const sc of manifest.scenarios || []) {
         await DB.insertScenario({ name: sc.name, shareCode: sc.share_code, gameTag: sc.game_tag, notes: sc.notes, folderId: scMap[sc.folder_id] || null }); count++
       }
-      for (const ap of manifest.aimPlaylists || []) {
-        await DB.uploadAimPlaylist({ name: ap.name, folderId: aimMap[ap.folder_id] || null, gameTag: ap.game_tag, notes: ap.notes, workshopUrl: ap.workshop_url, playlistCode: ap.playlist_code }); count++
-      }
 
       await refresh()
       UI.setFeedback("import-feedback", `imported ${count} items ✓`)
     } catch (err) { UI.setFeedback("import-feedback", err.message, true) }
     finally { importBtn.disabled = false }
   })
-
-  // ── appearance/theme ──
-  // Wrapped defensively: a problem in here should never be able to take the rest of
-  // init (and therefore playlists/scenarios loading) down with it.
-  try {
-    function renderThemeSwatches() {
-      const state = ThemeSafe.load()
-      const wrap = document.getElementById("theme-swatches")
-      wrap.innerHTML = ThemeSafe.PRESETS.map(p => `
-        <button type="button" class="theme-swatch${p.id === state.preset ? " active" : ""}" data-theme-preset="${p.id}" title="${p.name}"
-          style="--sw-a:${p.accent};--sw-b:${p.accent2}"></button>`).join("")
-    }
-    renderThemeSwatches()
-    document.getElementById("theme-transparency").value = ThemeSafe.load().transparency
-    document.getElementById("theme-transparency-val").textContent = ThemeSafe.load().transparency
-
-    document.getElementById("theme-swatches").addEventListener("click", e => {
-      const btn = e.target.closest("[data-theme-preset]"); if (!btn) return
-      ThemeSafe.set({ preset: btn.dataset.themePreset })
-      renderThemeSwatches()
-    })
-    document.getElementById("theme-transparency").addEventListener("input", e => {
-      document.getElementById("theme-transparency-val").textContent = e.target.value
-      ThemeSafe.set({ transparency: Number(e.target.value) })
-    })
-    document.getElementById("btn-theme-reset").addEventListener("click", () => {
-      const s = ThemeSafe.reset()
-      renderThemeSwatches()
-      document.getElementById("theme-transparency").value = s.transparency
-      document.getElementById("theme-transparency-val").textContent = s.transparency
-      UI.toast("appearance reset")
-    })
-  } catch (err) { console.error("appearance settings failed to init:", err) }
 
   // Esc closes whatever modal is open
   document.addEventListener("keydown", e => {
