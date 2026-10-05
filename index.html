@@ -37,22 +37,6 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><polygon points="10 8 16 12 10 16 10 8"/></svg>
             <span>Scenarios</span>
           </button>
-          <button class="nav-btn" data-view="transfer">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-            <span>Export / Import</span>
-          </button>
-          <button class="nav-btn" data-view="routine">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 15"/></svg>
-            <span>Routine</span>
-          </button>
-          <button class="nav-btn" data-view="sens">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
-            <span>Sensitivity</span>
-          </button>
-          <button class="nav-btn" data-view="aimbeast">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="8"/><line x1="12" y1="2" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="22"/><line x1="2" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="22" y2="12"/></svg>
-            <span>Aimbeast</span>
-          </button>
           <button class="nav-btn" data-view="settings">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93l-1.41 1.41M4.93 4.93l1.41 1.41M12 2v2M12 20v2M20 12h2M2 12h2M19.07 19.07l-1.41-1.41M4.93 19.07l1.41-1.41"/></svg>
             <span>Settings</span>
@@ -76,6 +60,12 @@
             <span class="count-badge" id="playlist-count">0</span>
           </div>
           <div class="topbar-right">
+            <div class="tool-group">
+              <button class="btn-ghost" data-open-panel="routine" title="Routine timer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg><span>Routine</span></button>
+              <button class="btn-ghost" data-open-panel="sens" title="Sensitivity tracker"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg><span>Sens</span></button>
+              <button class="btn-ghost" id="btn-folders-toggle" title="Collapse / expand all folders"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="7 8 12 3 17 8"/><polyline points="7 16 12 21 17 16"/></svg></button>
+              <button class="btn-ghost" onclick="openPalette()" title="Command palette (Ctrl+K)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><span>Ctrl K</span></button>
+            </div>
             <div class="search-box">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
               <input type="text" id="search-input" placeholder="search…" />
@@ -164,7 +154,7 @@
       </section>
 
       <!-- routine -->
-      <section id="view-routine" class="view">
+      <section id="view-routine" class="view panel" data-panel-title="Routine">
         <div class="topbar">
           <div class="topbar-left">
             <h1>Routine</h1>
@@ -234,7 +224,7 @@
       </section>
 
       <!-- sensitivity -->
-      <section id="view-sens" class="view">
+      <section id="view-sens" class="view panel" data-panel-title="Sensitivity">
         <div class="topbar">
           <div class="topbar-left">
             <h1>Sensitivity</h1>
@@ -279,39 +269,8 @@
         </div>
       </section>
 
-      <!-- aimbeast -->
-      <section id="view-aimbeast" class="view">
-        <div class="topbar">
-          <div class="topbar-left">
-            <h1>Aimbeast</h1>
-            <span class="count-badge" id="aim-count">0</span>
-          </div>
-          <div class="topbar-right">
-            <div class="search-box">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-              <input type="text" id="aim-search" placeholder="search…" />
-            </div>
-            <button class="btn-primary" id="btn-new-aim-folder">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-              New folder
-            </button>
-            <button class="btn-primary" id="btn-add-aim-playlist">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-              Add playlist
-            </button>
-          </div>
-        </div>
-        <div id="aim-folders-container">
-          <div class="empty-state" id="empty-aim">
-            <div class="empty-glyph">⬡</div>
-            <p>No Aimbeast playlists yet</p>
-            <span>Add playlists with their workshop URL or code</span>
-          </div>
-        </div>
-      </section>
-
       <!-- export / import -->
-      <section id="view-transfer" class="view">
+      <section id="view-transfer" class="view panel panel-sm" data-panel-title="Export / Import">
         <div class="topbar">
           <div class="topbar-left"><h1>Export / Import</h1></div>
         </div>
@@ -412,27 +371,6 @@ create table if not exists sens (
   updated_at timestamptz default now()
 );
 
-create table if not exists aimbeast_folders (
-  id uuid default gen_random_uuid() primary key,
-  name text not null,
-  position integer,
-  color text,
-  parent_id uuid references aimbeast_folders(id) on delete set null,
-  created_at timestamptz default now()
-);
-
-create table if not exists aimbeast_playlists (
-  id uuid default gen_random_uuid() primary key,
-  name text not null,
-  folder_id uuid references aimbeast_folders(id) on delete set null,
-  game_tag text,
-  notes text,
-  workshop_url text,
-  playlist_code text,
-  pinned boolean default false,
-  position integer,
-  created_at timestamptz default now()
-);</code></pre>
               <p style="margin-top:2px">Already have these tables from an older version? Run this too — it's safe to run more than once and won't touch existing data:</p>
               <pre><code>alter table folders add column if not exists position integer;
 alter table folders add column if not exists color text;
@@ -446,11 +384,6 @@ alter table scenarios add column if not exists folder_id uuid references scenari
 alter table scenario_folders add column if not exists position integer;
 alter table scenario_folders add column if not exists color text;
 alter table scenario_folders add column if not exists parent_id uuid references scenario_folders(id) on delete set null;
-alter table aimbeast_folders add column if not exists position integer;
-alter table aimbeast_folders add column if not exists color text;
-alter table aimbeast_folders add column if not exists parent_id uuid references aimbeast_folders(id) on delete set null;
-alter table aimbeast_playlists add column if not exists pinned boolean default false;
-alter table aimbeast_playlists add column if not exists position integer;
 
 create table if not exists resources (
   id uuid default gen_random_uuid() primary key,
@@ -463,7 +396,7 @@ create table if not exists resources (
   position numeric,
   created_at timestamptz default now()
 );</code></pre>
-              <p style="margin-top:2px">Folders inside folders now work for <strong>playlists, scenarios and Aimbeast</strong>. If you already have the tables, the <code>alter table</code> block above is all you need — run it once (safe to repeat). If you never created <code>scenario_folders</code>, run its <code>create table if not exists</code> block above first.</p>
+              <p style="margin-top:2px">Folders inside folders now work for <strong>playlists and scenarios</strong>. If you already have the tables, the <code>alter table</code> block above is all you need — run it once (safe to repeat). If you never created <code>scenario_folders</code>, run its <code>create table if not exists</code> block above first.</p>
             </div>
           </details>
           <div class="field">
@@ -480,40 +413,13 @@ create table if not exists resources (
           </div>
         </div>
 
-        <div class="form-card theme-card">
-          <div class="theme-card-hdr">
-            <h2>Appearance</h2>
-            <button class="btn-ghost btn-sm" id="btn-theme-reset">Reset to default</button>
-          </div>
-          <div class="field">
-            <label>Accent color</label>
-            <div class="theme-swatches" id="theme-swatches"></div>
-          </div>
-          <div class="field">
-            <label>Style</label>
-            <div class="seg"><button type="button" data-theme-opt="style:block">Blocky</button><button type="button" data-theme-opt="style:soft">Soft</button></div>
-          </div>
-          <div class="field">
-            <label>Font</label>
-            <div class="seg"><button type="button" data-theme-opt="font:default">Clean</button><button type="button" data-theme-opt="font:minecraft">Minecraft</button></div>
-          </div>
-          <div class="field">
-            <label>Background</label>
-            <div class="seg"><button type="button" data-theme-opt="bg:blocks">Blocks</button><button type="button" data-theme-opt="bg:stars">Stars</button><button type="button" data-theme-opt="bg:aurora">Aurora</button><button type="button" data-theme-opt="bg:grid">Grid</button><button type="button" data-theme-opt="bg:off">Off</button></div>
-          </div>
-          <div class="field">
-            <label>Animations</label>
-            <div class="seg"><button type="button" data-theme-opt="motion:normal">Normal</button><button type="button" data-theme-opt="motion:calm">Calm</button><button type="button" data-theme-opt="motion:off">Off</button></div>
-          </div>
-          <div class="field">
-            <label>Density</label>
-            <div class="seg"><button type="button" data-theme-opt="density:comfy">Comfy</button><button type="button" data-theme-opt="density:compact">Compact</button></div>
-          </div>
-          <div class="field">
-            <label for="theme-transparency">Panel transparency <span class="optional" id="theme-transparency-val">50</span></label>
-            <input type="range" id="theme-transparency" min="5" max="100" value="50" />
-          </div>
+        <div class="form-card theme-card" id="appearance-root"></div>
+        <div class="form-card">
+          <div class="theme-card-hdr"><h2>Data</h2></div>
+          <p class="hint" style="margin:0 0 12px;color:var(--text-2);font-size:12.5px">Back up or move your playlists, scenarios and folders as a zip.</p>
+          <button class="btn-ghost" data-open-panel="transfer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Export / Import</button>
         </div>
+        
       </section>
 
     </main>
@@ -775,51 +681,6 @@ create table if not exists resources (
     </div>
   </div>
 
-  <!-- add aimbeast playlist modal -->
-  <div id="aim-modal-overlay" class="modal-backdrop hidden">
-    <div class="modal modal-wide">
-      <div class="modal-hdr">
-        <span id="aim-modal-title">Add Aimbeast playlist</span>
-        <button class="modal-x" id="aim-modal-close">&#x2715;</button>
-      </div>
-      <div class="field">
-        <label for="aim-pl-name">Name</label>
-        <input type="text" id="aim-pl-name" placeholder="e.g. Voltaic B — Dynamic" autocomplete="off" />
-      </div>
-      <div class="field-row">
-        <div class="field">
-          <label for="aim-pl-folder">Folder</label>
-          <div class="select-wrap">
-            <select id="aim-pl-folder"><option value="">— no folder —</option></select>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
-          </div>
-        </div>
-        <div class="field">
-          <label for="aim-pl-game">Game tag <span class="optional">optional</span></label>
-          <input type="text" id="aim-pl-game" placeholder="CS2, Valorant…" />
-        </div>
-      </div>
-      <div class="field">
-        <label for="aim-pl-url">Workshop URL <span class="optional">optional</span></label>
-        <input type="text" id="aim-pl-url" placeholder="https://aimbeast.com/workshop/…" class="mono" />
-      </div>
-      <div class="field">
-        <label for="aim-pl-code">Playlist code <span class="optional">optional — local copy</span></label>
-        <textarea id="aim-pl-code" rows="4" placeholder="paste playlist code here…" class="mono"></textarea>
-      </div>
-      <div class="field">
-        <label for="aim-pl-notes">Notes <span class="optional">optional</span></label>
-        <textarea id="aim-pl-notes" rows="2" placeholder="difficulty, source, what it trains…"></textarea>
-      </div>
-      <div class="modal-actions">
-        <button class="btn-ghost" id="aim-modal-cancel">Cancel</button>
-        <button class="btn-primary" id="aim-modal-confirm">Save</button>
-      </div>
-    </div>
-  </div>
-
-  <div id="toast"></div>
-
   <div id="res-modal" class="modal-backdrop hidden">
     <div class="modal">
       <div class="modal-hdr"><span id="res-modal-title">Add resource</span><button class="modal-x" id="res-modal-close">✕</button></div>
@@ -836,11 +697,13 @@ create table if not exists resources (
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.2/dist/umd/supabase.js" integrity="sha384-yifgV8iFWyp5cgu+V1G1rtlEHpEErPlL5fTrkUELIsWq0CIVDON2WP/NlXVJT3vO" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js" integrity="sha384-+mbV2IY1Zk/X1p/nWllGySJSUN8uMs+gUAN10Or95UBH0fpj6GfKgPmgC5EXieXG" crossorigin="anonymous"></script>
   <script src="js/theme.js"></script>
+  <script src="js/appearance.js"></script>
   <script src="js/db.js"></script>
   <script src="js/ui.js"></script>
   <script src="js/routine.js"></script>
   <script src="js/sens.js"></script>
   <script src="js/resources.js"></script>
+  <script src="js/palette.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>
