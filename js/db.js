@@ -174,7 +174,6 @@ const DB = (() => {
     if (error) throw error
   }
 
-  // aimbeast folders
   async function getResources() {
     const { data, error } = await client.from("resources").select("*"); if (error) throw error; return data
   }
@@ -190,61 +189,6 @@ const DB = (() => {
   async function deleteResource(id) {
     const { error } = await client.from("resources").delete().eq("id", id); if (error) throw error
   }
-  async function getAimFolders() {
-    const { data, error } = await client.from("aimbeast_folders").select("*")
-    if (error) throw error; return data
-  }
-  async function createAimFolder(name, color, parentId) {
-    const row = { name }
-    if (color) row.color = color
-    if (parentId) row.parent_id = parentId
-    const { data, error } = await client.from("aimbeast_folders").insert(row).select().single()
-    if (error) throw error; return data
-  }
-  async function setAimFolderParent(id, parentId) {
-    const { error } = await client.from("aimbeast_folders").update({ parent_id: parentId || null }).eq("id", id)
-    if (error) throw error
-  }
-  async function setAimFolderColor(id, color) {
-    const { error } = await client.from("aimbeast_folders").update({ color: color || null }).eq("id", id)
-    if (error) throw error
-  }
-  async function renameAimFolder(id, name) {
-    const { error } = await client.from("aimbeast_folders").update({ name }).eq("id", id)
-    if (error) throw error
-  }
-  async function deleteAimFolder(id) {
-    const { error } = await client.from("aimbeast_folders").delete().eq("id", id)
-    if (error) throw error
-  }
-  async function reorderAimFolders(ids) { await bulkPosition("aimbeast_folders", ids) }
-
-  // aimbeast playlists
-  async function getAllAimPlaylists() {
-    const { data, error } = await client.from("aimbeast_playlists").select("*")
-    if (error) throw error; return data
-  }
-  async function uploadAimPlaylist({ name, folderId, gameTag, notes, workshopUrl, playlistCode }) {
-    const { data, error } = await client.from("aimbeast_playlists").insert({ name, folder_id: folderId||null, game_tag: gameTag||null, notes: notes||null, workshop_url: workshopUrl||null, playlist_code: playlistCode||null }).select().single()
-    if (error) throw error; return data
-  }
-  async function updateAimPlaylist(id, { name, folderId, gameTag, notes, workshopUrl, playlistCode }) {
-    const { data, error } = await client.from("aimbeast_playlists").update({ name, folder_id: folderId||null, game_tag: gameTag||null, notes: notes||null, workshop_url: workshopUrl||null, playlist_code: playlistCode||null }).eq("id", id).select().single()
-    if (error) throw error; return data
-  }
-  async function toggleAimPlaylistPin(id, pinned) {
-    const { error } = await client.from("aimbeast_playlists").update({ pinned }).eq("id", id)
-    if (error) throw error
-  }
-  async function movePlaylistToAimFolder(id, folderId) {
-    const { error } = await client.from("aimbeast_playlists").update({ folder_id: folderId||null }).eq("id", id)
-    if (error) throw error
-  }
-  async function deleteAimPlaylist(id) {
-    const { error } = await client.from("aimbeast_playlists").delete().eq("id", id)
-    if (error) throw error
-  }
-  async function reorderAimPlaylists(ids) { await bulkPosition("aimbeast_playlists", ids) }
 
   return {
     init, ready, ping,
@@ -254,7 +198,5 @@ const DB = (() => {
     getAllScenarios, insertScenario, createScenarioFull, updateScenario, moveScenarioToFolder, toggleScenarioPin, deleteScenario, reorderScenarios,
     getSens, upsertSens, addSensType, deleteSensType,
     getResources, insertResource, insertResources, updateResource, deleteResource,
-    getAimFolders, createAimFolder, renameAimFolder, deleteAimFolder, reorderAimFolders, setAimFolderParent, setAimFolderColor,
-    getAllAimPlaylists, uploadAimPlaylist, updateAimPlaylist, toggleAimPlaylistPin, movePlaylistToAimFolder, deleteAimPlaylist, reorderAimPlaylists,
   }
 })()
