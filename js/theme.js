@@ -10,17 +10,30 @@ const Background = (() => {
   function accent() { return getComputedStyle(document.documentElement).getPropertyValue("--accent").trim() || "#5ad1ff" }
   function size() { cv.width = innerWidth; cv.height = innerHeight; seed() }
   function seed() {
-    const n = mode === "stars" ? 90 : 38
-    items = Array.from({ length: n }, () => ({ x: Math.random() * cv.width, y: Math.random() * cv.height, s: mode === "stars" ? 1 + Math.floor(Math.random() * 2) : 6 + Math.floor(Math.random() * 3) * 4, v: 0.15 + Math.random() * 0.5, a: 0.04 + Math.random() * 0.1 }))
+    const area = cv.width * cv.height
+    const n = Math.max(14, Math.round(area / (mode === "stars" ? 16000 : 34000)))
+    const sizes = [8, 8, 12, 16, 24]
+    items = Array.from({ length: n }, () => ({
+      x: Math.random() * cv.width, y: Math.random() * cv.height,
+      s: mode === "stars" ? 4 : sizes[Math.floor(Math.random() * sizes.length)],
+      v: 0.12 + Math.random() * 0.4, a: mode === "stars" ? 0.25 + Math.random() * 0.5 : 0.14 + Math.random() * 0.2, p: Math.random() * 6.28,
+    }))
   }
-  function frame() {
+  // blocks get a lit top-left and shaded bottom-right edge so they read as cubes, not flat squares
+  function frame(t) {
     ctx.clearRect(0, 0, cv.width, cv.height)
-    ctx.fillStyle = accent()
+    const col = accent()
     for (const it of items) {
-      ctx.globalAlpha = it.a
-      ctx.fillRect(Math.round(it.x), Math.round(it.y), it.s, it.s)
-      it.y -= it.v * speed; if (mode === "blocks") it.x += Math.sin(it.y / 90) * 0.15 * speed
-      if (it.y < -20) { it.y = cv.height + 10; it.x = Math.random() * cv.width }
+      const x = Math.round(it.x / 4) * 4, y = Math.round(it.y / 4) * 4, s = it.s
+      if (mode === "stars") {
+        ctx.globalAlpha = it.a * (0.55 + 0.45 * Math.sin(t / 900 + it.p)); ctx.fillStyle = "#fff"; ctx.fillRect(x, y, s, s)
+      } else {
+        ctx.globalAlpha = it.a; ctx.fillStyle = col; ctx.fillRect(x, y, s, s)
+        ctx.globalAlpha = it.a * 0.7; ctx.fillStyle = "#fff"; ctx.fillRect(x, y, s, 2); ctx.fillRect(x, y, 2, s)
+        ctx.globalAlpha = it.a * 0.8; ctx.fillStyle = "#000"; ctx.fillRect(x, y + s - 2, s, 2); ctx.fillRect(x + s - 2, y, 2, s)
+      }
+      it.y -= it.v * speed; if (mode === "blocks") it.x += Math.sin(it.y / 120 + it.p) * 0.12 * speed
+      if (it.y < -30) { it.y = cv.height + 20; it.x = Math.random() * cv.width }
     }
     raf = requestAnimationFrame(frame)
   }
@@ -49,7 +62,7 @@ const Theme = (() => {
     { id: "mono",    name: "Mono",    accent: "#e5e9f0", accent2: "#9aa5b8", onAccent: "#10141c" },
   ]
   const KEY = "km-theme"
-  const DEFAULTS = { preset: "cyan", transparency: 50, font: "default", style: "block", bg: "blocks", motion: "normal", density: "comfy" }
+  const DEFAULTS = { preset: "cyan", transparency: 50, fv: 1, font: "minecraft", style: "block", bg: "blocks", motion: "normal", density: "comfy" }
 
   function hexToRgb(hex) {
     const m = hex.replace("#", "").match(/.{2}/g)
@@ -62,7 +75,11 @@ const Theme = (() => {
   }
 
   function load() {
-    try { return Object.assign({}, DEFAULTS, JSON.parse(localStorage.getItem(KEY) || "{}")) }
+    try {
+      const saved = JSON.parse(localStorage.getItem(KEY) || "{}"), s = Object.assign({}, DEFAULTS, saved)
+      if (saved.fv !== 1) { s.font = "minecraft"; s.fv = 1 } // one-time: the rebrand ships with the Minecraft font on; Clean is still one click away
+      return s
+    }
     catch { return Object.assign({}, DEFAULTS) }
   }
   function save(state) { try { localStorage.setItem(KEY, JSON.stringify(state)) } catch {} }
@@ -107,3 +124,6 @@ document.addEventListener("DOMContentLoaded", syncThemeOpts)
 
 // Applied immediately (before app.js) so there's no flash of un-themed content.
 Theme.init()
+
+// nav tabs collapse to icons on small screens, so give them tooltips
+document.querySelectorAll(".nav-btn").forEach(b => { b.title = b.textContent.trim() })
