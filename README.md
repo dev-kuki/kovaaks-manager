@@ -4,7 +4,7 @@ Self-hosted KovaaK's / Aimbeast playlist manager backed by Supabase. Organize pl
 
 ## Setup
 
-1. Create a free [Supabase](https://supabase.com) project.
+1. Create a free [Supabase](https://supabase.com) project
 2. Open **SQL Editor** and run the table setup from the Settings tab in the app (it's all there, copy-paste ready). If you already have the tables from an older version, run the `alter table ... add column if not exists ...` block underneath it too — it's safe to run more than once and won't touch your data. **Updating from an older copy:** scenario folders are new, so also run the `create table if not exists scenario_folders` block plus the `folder_id` line in the alter block — both are in the same Settings guide.
 3. Paste your Project URL and anon key into Settings and hit Save & Connect.
 
